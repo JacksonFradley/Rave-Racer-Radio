@@ -1,0 +1,380 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>RAVE RACER REMIX — Developer Sandbox &amp; Mechanic Troubleshooting Suite</title>
+    <link rel="stylesheet" href="css/style.css" />
+</head>
+<body>
+    <!-- Multi-Pass WebGL2 Canvas (Nagai Sky/World + Auto Modellista Cars + Paint Smudge Pass) -->
+    <canvas id="gl-canvas"></canvas>
+
+    <!-- 2D Anime Impact Star & Shatter VFX Canvas Overlay -->
+    <canvas id="impact-vfx-canvas"></canvas>
+
+    <!-- ========================================================================
+         DEVELOPER STARTING MENU OVERLAY (Toggleable anytime via ESC)
+         ======================================================================== -->
+    <div id="dev-start-menu" class="modal-overlay hud-interactive">
+        <div class="dev-menu-window">
+            <div class="dev-menu-header">
+                <div>
+                    <div class="dev-menu-eyebrow">DEVELOPMENT SANDBOX &amp; DIAGNOSTIC SUITE // BUILD 0.2</div>
+                    <h1>RAVE RACER REMIX — MECHANIC TROUBLESHOOTING HUB</h1>
+                </div>
+                <button class="arcade-btn btn-gold" id="btn-resume-from-menu">▶ CLOSE MENU &amp; DRIVE (ESC)</button>
+            </div>
+
+            <div class="dev-menu-grid">
+                <!-- COLUMN 1: DRIVING & TRACK TESTBEDS -->
+                <div class="dev-menu-section">
+                    <div class="dev-section-title">🏁 1. DRIVING &amp; PHYSICS TEST TRACKS</div>
+                    <p class="dev-section-sub">Select a track preset to isolate steering, acceleration, drift angles, or 3D elevation.</p>
+
+                    <div class="dev-card-list">
+                        <div class="dev-card" data-launch-mode="track_straight">
+                            <div class="dev-card-head">
+                                <span class="dev-card-title">TRACK 01 // STRAIGHTAWAY &amp; DRAG RUNWAY</span>
+                                <span class="dev-tag tag-cyan">ZERO CURVE</span>
+                            </div>
+                            <p>600m dead-straight flat runway (32m wide). Best for testing pure <strong>W/S</strong> acceleration, <strong>A/D</strong> lane changes, caster self-centering, and top-speed Paint Smudge.</p>
+                            <button class="dev-launch-btn">LAUNCH STRAIGHTAWAY ▶</button>
+                        </div>
+
+                        <div class="dev-card" data-launch-mode="track_skidpad">
+                            <div class="dev-card-head">
+                                <span class="dev-card-title">TRACK 02 // R4 DRIFT SKIDPAD &amp; HAIRPIN OVAL</span>
+                                <span class="dev-tag tag-gold">DRIFT LAB</span>
+                            </div>
+                            <p>Wide constant-radius drift bowl, S-chicane &amp; 180° hairpin. Built to test <strong>Space + A/D</strong> drift initiation, slip angles, and Drift Boost exits.</p>
+                            <button class="dev-launch-btn">LAUNCH DRIFT SKIDPAD ▶</button>
+                        </div>
+
+                        <div class="dev-card" data-launch-mode="track_elevation">
+                            <div class="dev-card-head">
+                                <span class="dev-card-title">TRACK 03 // ELEVATION &amp; BANKING COASTER</span>
+                                <span class="dev-tag tag-magenta">3D SLOPES</span>
+                            </div>
+                            <p>Steep +28m climb, blind crest, downhill plunge, and high-banked bowl. Tests 3D surface normal alignment and camera pitch tracking.</p>
+                            <button class="dev-launch-btn">LAUNCH ELEVATION LOOP ▶</button>
+                        </div>
+
+                        <div class="dev-card" data-launch-mode="track_full_race">
+                            <div class="dev-card-head">
+                                <span class="dev-card-title">TRACK 04 // FULL NAGAI BAYSHORE CIRCUIT + AI</span>
+                                <span class="dev-tag tag-volt">FULL RACE</span>
+                            </div>
+                            <p>Complete 4-sector circuit (Palms → Bass Tunnel → Suspension Bridge → Shibuya) with all 3 Personality AI Rivals.</p>
+                            <button class="dev-launch-btn">LAUNCH FULL CIRCUIT ▶</button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- COLUMN 2: MECHANIC & SHADER LABS -->
+                <div class="dev-menu-section">
+                    <div class="dev-section-title">🔬 2. MECHANIC &amp; SYSTEM LABS</div>
+                    <p class="dev-section-sub">Jump directly into isolated sandboxes with specialized camera angles and debug tools.</p>
+
+                    <div class="dev-card-list">
+                        <div class="dev-card" data-launch-mode="lab_car_mechanics">
+                            <div class="dev-card-head">
+                                <span class="dev-card-title">LAB 01 // 3D CAR TURNTABLE &amp; BASIS VECTORS</span>
+                                <span class="dev-tag tag-cyan">360° ORBIT</span>
+                            </div>
+                            <p>Inspect the 3D car with live <strong>Travel Forward (Green)</strong>, <strong>Visual Nose (Cyan)</strong>, and <strong>Right (Red)</strong> 3D arrows. Drag mouse to orbit 360° or lock car in-place to test steering &amp; drift yaw.</p>
+                            <button class="dev-launch-btn">OPEN CAR MECHANICS LAB ▶</button>
+                        </div>
+
+                        <div class="dev-card" data-launch-mode="lab_shaders_vibe">
+                            <div class="dev-card-head">
+                                <span class="dev-card-title">LAB 02 // VIBE 2D LUT &amp; PAINT SMUDGE STUDIO</span>
+                                <span class="dev-tag tag-magenta">RENDERING</span>
+                            </div>
+                            <p>Compare Raw 3D Scene vs Smudge History Buffer vs Final Composite. Test all 4 Car Vibes × 4 Track Zones and Kuwahara oil-paint edges.</p>
+                            <button class="dev-launch-btn">OPEN SHADER &amp; VIBE STUDIO ▶</button>
+                        </div>
+
+                        <div class="dev-card" data-launch-mode="lab_combat_boxes">
+                            <div class="dev-card-head">
+                                <span class="dev-card-title">LAB 03 // CAR COMBAT, 2D BOX PHYSICS &amp; EMOTIONS</span>
+                                <span class="dev-tag tag-gold">HUD PHYSICS</span>
+                            </div>
+                            <p>Test Car-to-Car sideswipes, T-Bone slams, 2D Hooke's Law spring portrait collisions, 2-frame hitstop, Boiling/Untouchable states, and Ego Shatter.</p>
+                            <button class="dev-launch-btn">OPEN COMBAT &amp; BOX LAB ▶</button>
+                        </div>
+
+                        <div class="dev-card" data-launch-mode="lab_dj_audio">
+                            <div class="dev-card-head">
+                                <span class="dev-card-title">LAB 04 // BOILER ROOM DJ JUMBOTRON &amp; 5-STEM SYNTH</span>
+                                <span class="dev-tag tag-volt">AUDIO + DJ</span>
+                            </div>
+                            <p>Parks in front of a giant Trackside LED Jumbotron. Trigger song sections (Pre-Drop, Drop, Acid 303), vinyl-scratch collision ducking, and DJ reactions.</p>
+                            <button class="dev-launch-btn">OPEN DJ &amp; AUDIO STUDIO ▶</button>
+                        </div>
+
+                        <div class="dev-card" data-launch-mode="lab_world_map">
+                            <div class="dev-card-head">
+                                <span class="dev-card-title">LAB 05 // WORLD MAP &amp; LANDMARK "DRIVE-OVER" LOADER</span>
+                                <span class="dev-tag tag-cyan">OVERWORLD</span>
+                            </div>
+                            <p>Test Dijkstra shortest-path route solving and preview the diegetic Landmark Drive-Over loading screens (Wind Turbines, Suspension Bridge, Toll Plaza).</p>
+                            <button class="dev-launch-btn">OPEN WORLD MAP LAB ▶</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ========================================================================
+         MAIN IN-GAME HUD & DEVELOPER DIAGNOSTICS OVERLAY
+         ======================================================================== -->
+    <div id="hud-root">
+        <!-- TOP ROW: 2D Physics Character Portrait Boxes + Dev Menu Bar + Live DJ Monitor -->
+        <div class="hud-top-row">
+            <div>
+                <div id="char-box-strip" class="hud-interactive"></div>
+                <div id="banter-stage"></div>
+            </div>
+
+            <div class="hud-top-center hud-interactive">
+                <div class="dev-top-toolbar">
+                    <button class="arcade-btn btn-gold" id="btn-open-dev-menu">🛠️ DEV MENU (ESC)</button>
+                    <button class="arcade-btn" id="btn-reset-car">↺ RESET CAR (R)</button>
+                    <button class="arcade-btn" id="btn-cam-cycle">📷 CAM: CHASE (V)</button>
+                    <button class="arcade-btn" id="btn-vectors-toggle">🧭 3D VECTORS: OFF</button>
+                    <button id="audio-status-btn">🔊 138 BPM AUDIO</button>
+                </div>
+                <div class="sector-banner">
+                    <div id="hud-zone-name">TRACK 01 // STRAIGHTAWAY &amp; DRAG RUNWAY</div>
+                </div>
+                <div class="lut-bar-wrap">
+                    <span>2D VIBE LUT:</span>
+                    <canvas id="lut-preview-canvas" width="256" height="16"></canvas>
+                    <span id="active-vibe-name" style="color:#00f5d4;font-weight:700;">PACIFIC SUNSET 1984</span>
+                </div>
+            </div>
+
+            <!-- Pillar 3.3: Live Track DJ Boiler Room Broadcast Monitor + 5-Stem Equalizer -->
+            <div class="hud-dj-box hud-interactive">
+                <canvas id="dj-hud-canvas" width="512" height="256"></canvas>
+                <div class="stem-mixer-strip">
+                    <div class="stem-col">
+                        <div class="stem-bar-bg"><div class="stem-bar-fill" id="stem-kick"></div></div>
+                        <span class="stem-lbl">909 SUB</span>
+                    </div>
+                    <div class="stem-col">
+                        <div class="stem-bar-bg"><div class="stem-bar-fill" id="stem-tops"></div></div>
+                        <span class="stem-lbl">TOPS</span>
+                    </div>
+                    <div class="stem-col">
+                        <div class="stem-bar-bg"><div class="stem-bar-fill" id="stem-chords"></div></div>
+                        <span class="stem-lbl">R4 PAD</span>
+                    </div>
+                    <div class="stem-col">
+                        <div class="stem-bar-bg"><div class="stem-bar-fill" id="stem-acid"></div></div>
+                        <span class="stem-lbl">303 ACID</span>
+                    </div>
+                    <div class="stem-col">
+                        <div class="stem-bar-bg"><div class="stem-bar-fill" id="stem-riser"></div></div>
+                        <span class="stem-lbl">RISER</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- MIDDLE ROW: LEFT DIAGNOSTIC COMPASS/INPUTS + RIGHT TUNING LAB -->
+        <div class="hud-mid-row">
+            <!-- Live Driving Telemetry, Key Visualizer, Minimap & Vector Compass -->
+            <div id="dev-diag-panel" class="hud-interactive">
+                <div class="diag-header">
+                    <span>📡 DRIVING &amp; VECTOR TELEMETRY</span>
+                    <span id="diag-active-mode" style="color:#ffe600;">FREE DRIVE</span>
+                </div>
+
+                <!-- Live Key Input Indicator -->
+                <div class="key-viz-row">
+                    <span class="key-cap" id="key-viz-w">W ▲</span>
+                    <span class="key-cap" id="key-viz-s">S ▼</span>
+                    <span class="key-cap" id="key-viz-a">A ◀ (L)</span>
+                    <span class="key-cap" id="key-viz-d">D ▶ (R)</span>
+                    <span class="key-cap key-wide" id="key-viz-space">SPACE (DRIFT)</span>
+                </div>
+
+                <!-- Minimap (Left) + Car Heading/Slip Vector Compass (Right) -->
+                <canvas id="diag-compass-canvas" width="244" height="114"></canvas>
+
+                <div class="diag-stats-grid">
+                    <div><span>LAT OFFSET:</span> <strong id="diag-lat">0.0m</strong></div>
+                    <div><span>HEADING OFF:</span> <strong id="diag-head">0.0°</strong></div>
+                    <div><span>SLIP ANGLE:</span> <strong id="diag-slip">0.0°</strong></div>
+                    <div><span>CURVATURE:</span> <strong id="diag-curve">0.00</strong></div>
+                </div>
+
+                <div class="diag-toggles-row">
+                    <button class="mini-dev-btn" id="btn-stationary-toggle" title="Lock car position on track to inspect steering & drift angles in place">📌 IN-PLACE RIG: OFF</button>
+                    <button class="mini-dev-btn" id="btn-ai-rivals-toggle" title="Enable or disable AI rival cars on track">🏎️ AI RIVALS: ON</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- BOTTOM ROW: Rage/Cockiness Meters + Interactive Test Dock + R4 Speedometer -->
+        <div class="hud-bottom-row">
+            <!-- Pillar 4.2: Dual-Axis Emotion Meters & Fluid Vibe Selector -->
+            <div class="hud-emotion-panel hud-interactive">
+                <div class="emotion-row">
+                    <div class="emotion-header">
+                        <span>RAGE METER // &gt;75% BOILING (+35% RAM)</span>
+                        <span id="player-rage-val">22%</span>
+                    </div>
+                    <div class="emotion-track">
+                        <div class="emotion-threshold-line"></div>
+                        <div class="emotion-fill-rage" id="player-rage-fill" style="width:22%"></div>
+                    </div>
+                </div>
+
+                <div class="emotion-row">
+                    <div class="emotion-header">
+                        <span>COCKINESS // &gt;75% UNTOUCHABLE (303 + GOLD)</span>
+                        <span id="player-ego-val">40%</span>
+                    </div>
+                    <div class="emotion-track">
+                        <div class="emotion-threshold-line"></div>
+                        <div class="emotion-fill-ego" id="player-ego-fill" style="width:40%"></div>
+                    </div>
+                </div>
+
+                <div class="vibe-selector-row">
+                    <button class="vibe-btn active" data-vibe="pacific_sunset">1. PACIFIC SUNSET 84</button>
+                    <button class="vibe-btn" data-vibe="acid_warehouse">2. ACID WAREHOUSE 303</button>
+                    <button class="vibe-btn" data-vibe="midnight_shibuya">3. MIDNIGHT SHIBUYA R4</button>
+                    <button class="vibe-btn" data-vibe="cyber_flamingo">4. REDLINE SOLAR FLARE</button>
+                </div>
+            </div>
+
+            <!-- Center Interactive Test & Feature Trigger Bar -->
+            <div class="hud-action-dock hud-interactive">
+                <div class="action-btn-row">
+                    <button class="arcade-btn btn-danger" id="btn-test-ram">💥 RAM &amp; BOX SLAM (C)</button>
+                    <button class="arcade-btn btn-danger" id="btn-ego-shatter">⚡ EGO SHATTER</button>
+                    <button class="arcade-btn btn-gold" id="btn-test-boost">🔥 SMUDGE BOOST (B)</button>
+                    <button class="arcade-btn" id="btn-cycle-zone">🎨 VIBE ZONE (Z)</button>
+                    <button class="arcade-btn" id="btn-dj-drop">🎧 DJ DROP REACTION</button>
+                    <button class="arcade-btn" id="btn-autopilot">🎮 AI CRUISE: OFF (P)</button>
+                </div>
+                <div class="controls-hint">
+                    <strong>W/S or ▲/▼:</strong> THROTTLE/BRAKE &nbsp;|&nbsp;
+                    <strong>A/D or ◀/▶:</strong> STEER L/R &nbsp;|&nbsp;
+                    <strong>SPACE/SHIFT:</strong> R4 DRIFT &nbsp;|&nbsp;
+                    <strong>R:</strong> RESET CAR &nbsp;|&nbsp;
+                    <strong>V:</strong> CAMERA &nbsp;|&nbsp;
+                    <strong>ESC:</strong> DEV MENU
+                </div>
+            </div>
+
+            <!-- Pillar 1: R4 Speedometer & Drift State Readout -->
+            <div class="hud-speed-panel hud-interactive">
+                <div class="race-pos-row">
+                    <span id="hud-race-rank">1ST</span>
+                    <span id="hud-lap-val">LAP 1 / 3</span>
+                </div>
+                <div class="speed-readout">
+                    <span id="hud-speed-val">0</span>
+                    <span class="speed-unit">KM/H</span>
+                </div>
+                <div class="speed-bar-bg">
+                    <div id="hud-speed-bar"></div>
+                </div>
+                <div id="hud-drift-badge" class="hud-badge">GRIP // READY</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Right-Side Collapsible Physics, Shader & Triad Live Tuning Lab -->
+    <div id="tuning-drawer" class="hud-interactive">
+        <div class="tuning-header" id="btn-toggle-tuning">
+            <span>⚙️ PHYSICS &amp; SHADER TUNING LAB</span>
+            <span>▾</span>
+        </div>
+        <div class="tuning-body">
+            <div class="tuning-subhead">DRIVING &amp; HANDLING</div>
+            <div class="slider-row">
+                <div class="slider-lbl"><span>Steer Angle (A/D)</span><span id="val-steer-angle">21°</span></div>
+                <input type="range" id="slider-steer-angle" min="0.15" max="0.65" step="0.02" value="0.36" />
+            </div>
+            <div class="slider-row">
+                <div class="slider-lbl"><span>Caster Self-Centering</span><span id="val-caster">11.0</span></div>
+                <input type="range" id="slider-caster" min="2.0" max="22.0" step="1.0" value="11.0" />
+            </div>
+            <div class="slider-row">
+                <div class="slider-lbl"><span>Corner Centrifugal Push</span><span id="val-corner-push">22%</span></div>
+                <input type="range" id="slider-corner-push" min="0.0" max="0.50" step="0.02" value="0.22" />
+            </div>
+            <div class="slider-row">
+                <div class="slider-lbl"><span>R4 Drift Slip Angle</span><span id="val-drift-slip">33°</span></div>
+                <input type="range" id="slider-drift-slip" min="0.20" max="0.90" step="0.05" value="0.58" />
+            </div>
+
+            <div class="tuning-subhead">SHADERS &amp; RENDER BUFFER</div>
+            <div class="buffer-mode-row">
+                <button class="mini-dev-btn active" data-buf-mode="0">FINAL</button>
+                <button class="mini-dev-btn" data-buf-mode="1">RAW 3D</button>
+                <button class="mini-dev-btn" data-buf-mode="2">SMUDGE BUF</button>
+            </div>
+            <div class="slider-row">
+                <div class="slider-lbl"><span>Paint Smudge Trail</span><span id="val-smudge">85%</span></div>
+                <input type="range" id="slider-smudge" min="0" max="1" step="0.05" value="0.85" />
+            </div>
+            <div class="slider-row">
+                <div class="slider-lbl"><span>Kuwahara Oil-Paint Edge</span><span id="val-kuwahara">75%</span></div>
+                <input type="range" id="slider-kuwahara" min="0" max="1" step="0.05" value="0.75" />
+            </div>
+            <div class="slider-row">
+                <div class="slider-lbl"><span>Auto Modellista Ink Line</span><span id="val-ink">90%</span></div>
+                <input type="range" id="slider-ink" min="0" max="1" step="0.05" value="0.90" />
+            </div>
+            <div class="slider-row">
+                <div class="slider-lbl"><span>Redline Speed Lines</span><span id="val-speedlines">85%</span></div>
+                <input type="range" id="slider-speedlines" min="0" max="1" step="0.05" value="0.85" />
+            </div>
+        </div>
+    </div>
+
+    <!-- Pillar 6.2: World Map & Dijkstra Route Selector Modal -->
+    <div id="world-map-modal" class="modal-overlay hidden hud-interactive">
+        <div class="world-map-window">
+            <div class="wm-header">
+                <h2>🗺️ REGIONAL HIGHWAY MAP // DIJKSTRA LANDMARK ROUTE SOLVER</h2>
+                <button class="arcade-btn" id="btn-close-map">✕ CLOSE MAP</button>
+            </div>
+            <p style="font-size:12px;color:#cfc9ec;margin-bottom:14px;">
+                Select a destination venue. The route solver calculates the highway path from <strong>Home Base (Nagai Coastal Deck)</strong> and generates a diegetic <strong>Landmark Drive-Over Loading Screen</strong> based on the landmarks along that stretch of highway while the Track DJ's bass fades in from across the bay.
+            </p>
+            <div id="venue-list"></div>
+        </div>
+    </div>
+
+    <!-- Pillar 6.3: Diegetic Landmark "Drive-Over" Loading Transition -->
+    <div id="landmark-loading-overlay" class="hidden">
+        <canvas id="landmark-canvas"></canvas>
+        <div class="landmark-hud">
+            <div id="landmark-title">BAYSHORE SUSPENSION BRIDGE // SPAN 02</div>
+            <div id="landmark-subtitle">APPROACHING VENUE — MUFFLED TRACK DJ BASS RISING</div>
+            <div class="landmark-bar">
+                <div id="landmark-progress-fill"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modular Scripts -->
+    <script src="js/vibe-palettes.js"></script>
+    <script src="js/audio-engine.js"></script>
+    <script src="js/dj-jumbotron.js"></script>
+    <script src="js/track-spline.js"></script>
+    <script src="js/vehicle-physics.js"></script>
+    <script src="js/expression-hud.js"></script>
+    <script src="js/webgl-renderer.js"></script>
+    <script src="js/main.js"></script>
+</body>
+</html>

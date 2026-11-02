@@ -1,0 +1,20 @@
+Rave Racer Remix Idea:
+Unyielding aesthetic first
+Racing game, built to be felt
+Core concepts:
+Color
+Music
+Motion
+How do they all affect each other?
+Color should be fluid; picking a color for your car is more like picking a vibe, as the courses change, so do the colors
+Music affecting color? Race events affecting Music? Speed affecting everything
+Motion should be felt. Colors smudge like paint as you hit top speeds, Red line inspiration
+Player expression:
+Drivers have little character boxes, anime-inspired.
+When driver interaction happens, they are supported by the little character boxes having interaction. EX: ramming into another car, the other player's character box rams into yours, some dialogue is exchanged
+Rage, Cockiness should have meters that change over the race and as things happen
+Every track should feel like a painting: Hiroshi Nagai, etc
+Inspirations: Auto modellista, ridge racer type 4
+Track DJ: racing should also feel like a boiler room set. Screens of whoever the track DJ is should be posted along the racetrack.
+Track DJ should react to moments in the song. This can just be face animations or 
+Map of locations + home base. Loading screen is based of a landmark you would logically see on the drive over

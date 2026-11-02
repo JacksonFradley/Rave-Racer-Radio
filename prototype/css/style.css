@@ -1,0 +1,1155 @@
+/* ============================================================================
+   RAVE RACER REMIX — Unyielding Aesthetic UI & Interactive HUD Stylesheet
+   Inspirations: Ridge Racer Type 4, Auto Modellista, Redline, Hiroshi Nagai
+   ============================================================================ */
+
+@import url('https://fonts.googleapis.com/css2?family=Chakra+Petch:ital,wght@0,600;0,700;1,700&family=Fugaz+One&display=swap');
+
+:root {
+    --bg-dark: #070512;
+    --panel-bg: rgba(11, 8, 26, 0.84);
+    --cyan: #00f5d4;
+    --magenta: #ff1e6b;
+    --gold: #ffe600;
+    --crimson: #ff003c;
+    --volt: #bfff00;
+    --ink: #000000;
+}
+
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+    user-select: none;
+}
+
+html, body {
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+    background: var(--bg-dark);
+    font-family: 'Chakra Petch', 'Segoe UI', sans-serif;
+    color: #ffffff;
+}
+
+#gl-canvas {
+    position: fixed;
+    inset: 0;
+    width: 100vw;
+    height: 100vh;
+    display: block;
+    z-index: 1;
+}
+
+#impact-vfx-canvas {
+    position: fixed;
+    inset: 0;
+    width: 100vw;
+    height: 100vh;
+    pointer-events: none;
+    z-index: 25;
+}
+
+/* ============================================================================
+   HUD OVERLAY CONTAINER
+   ============================================================================ */
+#hud-root {
+    position: fixed;
+    inset: 0;
+    z-index: 10;
+    pointer-events: none;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    padding: 14px 18px;
+}
+
+.hud-interactive {
+    pointer-events: auto;
+}
+
+/* ============================================================================
+   TOP ROW: 2D PHYSICS CHARACTER BOXES + SECTOR BANNER + DJ BOILER ROOM MONITOR
+   ============================================================================ */
+.hud-top-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 14px;
+}
+
+/* Pillar 4.1: 2D Physics-Driven Anime Character Portrait Boxes */
+#char-box-strip {
+    display: flex;
+    gap: 12px;
+    align-items: flex-start;
+    position: relative;
+    z-index: 15;
+}
+
+.char-box {
+    width: 128px;
+    background: var(--panel-bg);
+    border: 3px solid #ffffff;
+    box-shadow: 5px 5px 0px var(--ink);
+    padding: 4px;
+    transition: border-color 0.15s, box-shadow 0.15s;
+    will-change: transform;
+}
+
+.char-box-player {
+    border-color: var(--cyan);
+    box-shadow: 5px 5px 0px var(--ink), 0 0 14px rgba(0, 245, 212, 0.35);
+}
+
+.char-box.is-boiling {
+    border-color: var(--crimson) !important;
+    box-shadow: 5px 5px 0px var(--ink), 0 0 22px rgba(255, 0, 60, 0.85) !important;
+}
+
+.char-box.is-untouchable {
+    border-color: var(--gold) !important;
+    box-shadow: 5px 5px 0px var(--ink), 0 0 22px rgba(255, 230, 0, 0.85) !important;
+}
+
+.char-box.is-impact {
+    border-color: #ffffff !important;
+    background: #ff0044 !important;
+}
+
+.char-box-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: #05030d;
+    padding: 2px 5px;
+    margin-bottom: 3px;
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.5px;
+}
+
+.char-rank-badge {
+    background: var(--magenta);
+    color: #fff;
+    padding: 0 4px;
+    font-style: italic;
+}
+
+.char-name {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.char-portrait-wrap {
+    position: relative;
+    width: 100%;
+    height: 92px;
+    border: 2px solid #000;
+    overflow: hidden;
+    background: #090618;
+}
+
+.char-portrait-canvas {
+    width: 100%;
+    height: 100%;
+    display: block;
+}
+
+.char-state-pill {
+    position: absolute;
+    bottom: 3px;
+    left: 3px;
+    right: 3px;
+    background: rgba(5, 3, 14, 0.85);
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    font-size: 9px;
+    font-weight: 700;
+    text-align: center;
+    padding: 1px 3px;
+    letter-spacing: 0.4px;
+}
+
+.pill-boiling {
+    background: var(--crimson);
+    color: #fff;
+    border-color: #fff;
+}
+
+.pill-untouchable {
+    background: var(--gold);
+    color: #000;
+    border-color: #000;
+}
+
+.pill-drift {
+    background: var(--cyan);
+    color: #000;
+}
+
+.pill-impact {
+    background: #fff;
+    color: #ff003c;
+    font-weight: 900;
+}
+
+.char-mini-meters {
+    margin-top: 4px;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.mini-meter-row {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.m-lbl {
+    font-size: 8px;
+    width: 24px;
+    color: #b8b2d8;
+    font-weight: 700;
+}
+
+.m-bar {
+    flex: 1;
+    height: 5px;
+    background: #05030d;
+    border: 1px solid #000;
+    overflow: hidden;
+}
+
+.m-fill {
+    height: 100%;
+    transition: width 0.12s;
+}
+
+.m-rage {
+    background: linear-gradient(90deg, #ff6b00, #ff003c);
+}
+
+.m-ego {
+    background: linear-gradient(90deg, #00f5d4, #ffe600);
+}
+
+/* Pillar 4.3: Kinetic Mid-Race Banter Speech Ribbons */
+#banter-stage {
+    margin-top: 8px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    max-width: 440px;
+}
+
+.banter-ribbon {
+    background: #080517;
+    border: 3px solid #ffffff;
+    box-shadow: 6px 6px 0px #000000;
+    padding: 6px 14px;
+    transform: skewX(-10deg);
+    animation: ribbonSnapIn 0.18s cubic-bezier(0.18, 0.89, 0.32, 1.28);
+}
+
+.banter-rage {
+    border-color: var(--crimson);
+    background: linear-gradient(135deg, #2d0210 0%, #0b0414 100%);
+}
+
+.banter-cocky {
+    border-color: var(--gold);
+    background: linear-gradient(135deg, #2b2102 0%, #091826 100%);
+}
+
+.banter-speaker {
+    font-size: 10px;
+    font-weight: 700;
+    color: var(--cyan);
+    letter-spacing: 1px;
+    margin-bottom: 2px;
+}
+
+.banter-rage .banter-speaker {
+    color: var(--crimson);
+}
+
+.banter-cocky .banter-speaker {
+    color: var(--gold);
+}
+
+.banter-text {
+    font-family: 'Fugaz One', 'Chakra Petch', sans-serif;
+    font-size: 14px;
+    letter-spacing: 0.6px;
+    color: #ffffff;
+}
+
+.banter-rage .banter-text span {
+    display: inline-block;
+    animation: rageShake 0.12s infinite alternate;
+}
+
+.banter-cocky .banter-text span {
+    display: inline-block;
+    animation: cockyWave 0.55s infinite ease-in-out alternate;
+}
+
+.banter-exit {
+    opacity: 0;
+    transform: skewX(-10deg) translateX(-30px);
+    transition: all 0.25s ease-in;
+}
+
+@keyframes ribbonSnapIn {
+    0% { transform: skewX(-10deg) scale(0.5) translateX(-40px); opacity: 0; }
+    100% { transform: skewX(-10deg) scale(1) translateX(0); opacity: 1; }
+}
+
+@keyframes rageShake {
+    0% { transform: translate(-1px, -1px) rotate(-2deg); }
+    100% { transform: translate(1px, 1px) rotate(2deg); }
+}
+
+@keyframes cockyWave {
+    0% { transform: translateY(-2px); color: #ffffff; }
+    100% { transform: translateY(2px); color: var(--gold); }
+}
+
+/* ============================================================================
+   TOP CENTER: SECTOR & FLUID VIBE 2D LUT TELEMETRY
+   ============================================================================ */
+.hud-top-center {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+}
+
+.sector-banner {
+    background: var(--panel-bg);
+    border: 2px solid var(--cyan);
+    box-shadow: 4px 4px 0px #000;
+    padding: 5px 16px;
+    transform: skewX(-8deg);
+    text-align: center;
+}
+
+#hud-zone-name {
+    font-size: 13px;
+    font-weight: 700;
+    letter-spacing: 1.5px;
+    color: var(--cyan);
+}
+
+.lut-bar-wrap {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: rgba(8, 5, 20, 0.85);
+    border: 1px solid rgba(255, 255, 255, 0.25);
+    padding: 3px 10px;
+    font-size: 10px;
+}
+
+#lut-preview-canvas {
+    width: 110px;
+    height: 12px;
+    border: 1px solid #fff;
+}
+
+#audio-status-btn {
+    background: var(--magenta);
+    color: #fff;
+    border: 2px solid #000;
+    box-shadow: 3px 3px 0px #000;
+    padding: 3px 10px;
+    font-family: inherit;
+    font-size: 10px;
+    font-weight: 700;
+    cursor: pointer;
+}
+
+/* ============================================================================
+   TOP RIGHT: BOILER ROOM DJ MONITOR + 5-STEM INTERACTIVE MIXER
+   ============================================================================ */
+.hud-dj-box {
+    background: var(--panel-bg);
+    border: 3px solid var(--magenta);
+    box-shadow: 6px 6px 0px #000;
+    padding: 5px;
+    width: 268px;
+    transform: skewX(-4deg);
+}
+
+#dj-hud-canvas {
+    width: 100%;
+    height: 124px;
+    display: block;
+    border: 2px solid #000;
+}
+
+.stem-mixer-strip {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+    gap: 4px;
+    margin-top: 5px;
+    padding: 4px 6px;
+    background: #05030d;
+    height: 36px;
+}
+
+.stem-col {
+    flex: 1;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-end;
+    align-items: center;
+}
+
+.stem-bar-bg {
+    width: 100%;
+    height: 18px;
+    background: #141029;
+    display: flex;
+    align-items: flex-end;
+    padding: 1px;
+}
+
+.stem-bar-fill {
+    width: 100%;
+    height: 50%;
+    background: var(--cyan);
+    transition: height 0.08s;
+}
+
+#stem-acid {
+    background: var(--gold);
+}
+
+#stem-riser {
+    background: var(--magenta);
+}
+
+.stem-lbl {
+    font-size: 8px;
+    color: #b8b2d8;
+    margin-top: 2px;
+    font-weight: 700;
+}
+
+/* ============================================================================
+   BOTTOM ROW: EMOTION METERS + QUICK ACTIONS + R4 SPEEDOMETER
+   ============================================================================ */
+.hud-bottom-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+    gap: 14px;
+}
+
+/* Bottom Left: Player Emotion Meters & Vibe Picker */
+.hud-emotion-panel {
+    background: var(--panel-bg);
+    border: 3px solid #ffffff;
+    box-shadow: 6px 6px 0px #000;
+    padding: 10px 14px;
+    width: 320px;
+    transform: skewX(-6deg);
+}
+
+.emotion-row {
+    margin-bottom: 8px;
+}
+
+.emotion-header {
+    display: flex;
+    justify-content: space-between;
+    font-size: 11px;
+    font-weight: 700;
+    margin-bottom: 3px;
+}
+
+.text-boiling {
+    color: var(--crimson);
+    text-shadow: 0 0 8px var(--crimson);
+}
+
+.text-untouchable {
+    color: var(--gold);
+    text-shadow: 0 0 8px var(--gold);
+}
+
+.emotion-track {
+    height: 11px;
+    background: #060410;
+    border: 2px solid #000;
+    position: relative;
+    overflow: hidden;
+}
+
+.emotion-threshold-line {
+    position: absolute;
+    left: 75%;
+    top: 0;
+    bottom: 0;
+    width: 2px;
+    background: #ffffff;
+    z-index: 2;
+}
+
+.emotion-fill-rage {
+    height: 100%;
+    background: linear-gradient(90deg, #ff5500, #ff003c);
+    transition: width 0.12s;
+}
+
+.emotion-fill-ego {
+    height: 100%;
+    background: linear-gradient(90deg, #00f5d4, #ffe600);
+    transition: width 0.12s;
+}
+
+.vibe-selector-row {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 5px;
+    margin-top: 8px;
+}
+
+.vibe-btn {
+    background: #120d29;
+    color: #fff;
+    border: 2px solid rgba(255, 255, 255, 0.3);
+    padding: 4px 6px;
+    font-family: inherit;
+    font-size: 10px;
+    font-weight: 700;
+    cursor: pointer;
+    text-align: left;
+    transition: all 0.12s;
+}
+
+.vibe-btn:hover, .vibe-btn.active {
+    border-color: var(--cyan);
+    background: #23184c;
+    color: var(--cyan);
+}
+
+/* Bottom Center: Interactive Action & Test Triggers */
+.hud-action-dock {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+}
+
+.action-btn-row {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 7px;
+}
+
+.arcade-btn {
+    background: var(--panel-bg);
+    color: #ffffff;
+    border: 2px solid var(--cyan);
+    box-shadow: 4px 4px 0px #000;
+    padding: 7px 12px;
+    font-family: inherit;
+    font-size: 11px;
+    font-weight: 700;
+    cursor: pointer;
+    transform: skewX(-8deg);
+    transition: transform 0.1s, background 0.12s;
+}
+
+.arcade-btn:hover {
+    background: var(--cyan);
+    color: #000;
+    transform: skewX(-8deg) translateY(-2px);
+}
+
+.arcade-btn.btn-danger {
+    border-color: var(--crimson);
+}
+
+.arcade-btn.btn-danger:hover {
+    background: var(--crimson);
+    color: #fff;
+}
+
+.arcade-btn.btn-gold {
+    border-color: var(--gold);
+}
+
+.arcade-btn.btn-gold:hover {
+    background: var(--gold);
+    color: #000;
+}
+
+.arcade-btn.active {
+    background: var(--volt);
+    color: #000;
+    border-color: #fff;
+}
+
+.controls-hint {
+    background: rgba(5, 3, 14, 0.82);
+    padding: 3px 12px;
+    font-size: 11px;
+    color: #cfc9ec;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+/* Bottom Right: R4 Arcade Telemetry & Speedometer */
+.hud-speed-panel {
+    background: var(--panel-bg);
+    border: 3px solid var(--cyan);
+    box-shadow: 6px 6px 0px #000;
+    padding: 10px 16px;
+    width: 265px;
+    transform: skewX(-8deg);
+    text-align: right;
+}
+
+.race-pos-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    border-bottom: 2px solid rgba(255, 255, 255, 0.15);
+    padding-bottom: 4px;
+    margin-bottom: 4px;
+}
+
+#hud-race-rank {
+    font-family: 'Fugaz One', sans-serif;
+    font-size: 26px;
+    color: var(--gold);
+}
+
+#hud-lap-val {
+    font-size: 13px;
+    font-weight: 700;
+    color: #cfc9ec;
+}
+
+.speed-readout {
+    display: flex;
+    justify-content: flex-end;
+    align-items: baseline;
+    gap: 6px;
+}
+
+#hud-speed-val {
+    font-family: 'Fugaz One', sans-serif;
+    font-size: 46px;
+    line-height: 1;
+    color: #ffffff;
+    text-shadow: 3px 3px 0px var(--magenta);
+}
+
+.speed-unit {
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--cyan);
+}
+
+.speed-bar-bg {
+    height: 10px;
+    background: #060410;
+    border: 2px solid #000;
+    margin: 6px 0;
+    overflow: hidden;
+}
+
+#hud-speed-bar {
+    height: 100%;
+    background: linear-gradient(90deg, var(--cyan), var(--magenta), var(--gold));
+    width: 50%;
+    transition: width 0.06s;
+}
+
+.hud-badge {
+    display: inline-block;
+    width: 100%;
+    text-align: center;
+    padding: 3px 6px;
+    font-size: 11px;
+    font-weight: 700;
+    background: #141029;
+    border: 1px solid rgba(255, 255, 255, 0.25);
+}
+
+.badge-drift {
+    background: var(--cyan);
+    color: #000;
+}
+
+.badge-boost {
+    background: var(--gold);
+    color: #000;
+    animation: rageShake 0.1s infinite alternate;
+}
+
+/* ============================================================================
+   RIGHT-SIDE COLLAPSIBLE SHADER & TRIAD LIVE TUNING DRAWER
+   ============================================================================ */
+#tuning-drawer {
+    position: fixed;
+    right: 18px;
+    top: 205px;
+    width: 248px;
+    background: var(--panel-bg);
+    border: 2px solid var(--cyan);
+    box-shadow: 5px 5px 0px #000;
+    z-index: 20;
+    padding: 8px 12px;
+    transition: transform 0.22s ease;
+}
+
+#tuning-drawer.collapsed .tuning-body {
+    display: none;
+}
+
+.tuning-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--cyan);
+    cursor: pointer;
+}
+
+.tuning-body {
+    margin-top: 8px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.slider-row {
+    display: flex;
+    flex-direction: column;
+    font-size: 10px;
+}
+
+.slider-lbl {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 2px;
+    color: #dcd6f7;
+}
+
+.slider-row input[type="range"] {
+    width: 100%;
+    accent-color: var(--magenta);
+    cursor: pointer;
+}
+
+/* ============================================================================
+   PILLAR 6: WORLD MAP MODAL & LANDMARK "DRIVE-OVER" LOADING OVERLAY
+   ============================================================================ */
+.modal-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(6, 4, 16, 0.88);
+    backdrop-filter: blur(6px);
+    z-index: 40;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 24px;
+}
+
+.hidden {
+    display: none !important;
+}
+
+.world-map-window {
+    width: min(860px, 95vw);
+    background: #0d0920;
+    border: 4px solid var(--cyan);
+    box-shadow: 10px 10px 0px #000;
+    padding: 20px 24px;
+}
+
+.wm-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 2px solid rgba(255, 255, 255, 0.15);
+    padding-bottom: 10px;
+    margin-bottom: 14px;
+}
+
+.wm-header h2 {
+    font-family: 'Fugaz One', sans-serif;
+    color: var(--cyan);
+    font-size: 22px;
+    letter-spacing: 1px;
+}
+
+#venue-list {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+    gap: 14px;
+}
+
+.venue-card {
+    background: #171136;
+    border: 2px solid rgba(255, 255, 255, 0.25);
+    padding: 12px;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    gap: 8px;
+}
+
+.venue-card:hover {
+    border-color: var(--gold);
+}
+
+.venue-card-top {
+    display: flex;
+    justify-content: space-between;
+    font-size: 12px;
+    font-weight: 700;
+    color: var(--gold);
+}
+
+.venue-desc {
+    font-size: 11px;
+    color: #d0caf0;
+    line-height: 1.4;
+}
+
+.venue-route-tag {
+    font-size: 10px;
+    background: #090617;
+    padding: 6px;
+    border-left: 3px solid var(--magenta);
+    color: var(--cyan);
+}
+
+.venue-launch-btn {
+    background: var(--magenta);
+    color: #fff;
+    border: 2px solid #000;
+    box-shadow: 3px 3px 0px #000;
+    padding: 8px;
+    font-family: inherit;
+    font-weight: 700;
+    cursor: pointer;
+}
+
+.venue-launch-btn:hover {
+    background: var(--cyan);
+    color: #000;
+}
+
+/* Diegetic Landmark Drive-Over Loading Screen */
+#landmark-loading-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 50;
+    background: #060410;
+}
+
+#landmark-canvas {
+    width: 100%;
+    height: 100%;
+    display: block;
+}
+
+.landmark-hud {
+    position: absolute;
+    bottom: 36px;
+    left: 48px;
+    right: 48px;
+    background: rgba(8, 5, 22, 0.88);
+    border: 3px solid var(--gold);
+    box-shadow: 8px 8px 0px #000;
+    padding: 14px 20px;
+    transform: skewX(-6deg);
+}
+
+#landmark-title {
+    font-family: 'Fugaz One', sans-serif;
+    font-size: 24px;
+    color: var(--gold);
+}
+
+#landmark-subtitle {
+    font-size: 12px;
+    color: var(--cyan);
+    margin: 4px 0 8px;
+    font-weight: 700;
+}
+
+.landmark-bar {
+    height: 10px;
+    background: #000;
+    border: 1px solid #fff;
+}
+
+#landmark-progress-fill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--cyan), var(--magenta), var(--gold));
+    width: 0%;
+}
+
+
+/* ============================================================================
+   DEVELOPER STARTING MENU & MECHANIC TROUBLESHOOTING SUITE STYLES
+   ============================================================================ */
+.dev-menu-window {
+    width: min(1080px, 96vw);
+    max-height: 92vh;
+    overflow-y: auto;
+    background: #0b071c;
+    border: 4px solid var(--cyan);
+    box-shadow: 12px 12px 0px #000000;
+    padding: 20px 24px;
+}
+
+.dev-menu-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 2px solid rgba(255, 255, 255, 0.18);
+    padding-bottom: 12px;
+    margin-bottom: 16px;
+    gap: 12px;
+}
+
+.dev-menu-eyebrow {
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--magenta);
+    letter-spacing: 1.5px;
+}
+
+.dev-menu-header h1 {
+    font-family: 'Fugaz One', sans-serif;
+    font-size: 24px;
+    color: #ffffff;
+    letter-spacing: 0.8px;
+}
+
+.dev-menu-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(420px, 1fr));
+    gap: 20px;
+}
+
+.dev-section-title {
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--cyan);
+    letter-spacing: 1px;
+    margin-bottom: 3px;
+}
+
+.dev-section-sub {
+    font-size: 11px;
+    color: #b8b0dc;
+    margin-bottom: 10px;
+}
+
+.dev-card-list {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.dev-card {
+    background: #150f32;
+    border: 2px solid rgba(255, 255, 255, 0.22);
+    padding: 10px 14px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    cursor: pointer;
+    transition: border-color 0.12s, transform 0.1s, background 0.12s;
+}
+
+.dev-card:hover {
+    border-color: var(--gold);
+    background: #1d1444;
+    transform: translateX(3px);
+}
+
+.dev-card-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 8px;
+}
+
+.dev-card-title {
+    font-size: 13px;
+    font-weight: 700;
+    color: #ffffff;
+}
+
+.dev-tag {
+    font-size: 9px;
+    font-weight: 700;
+    padding: 2px 6px;
+    border: 1px solid #000;
+}
+
+.tag-cyan { background: var(--cyan); color: #000; }
+.tag-gold { background: var(--gold); color: #000; }
+.tag-magenta { background: var(--magenta); color: #fff; }
+.tag-volt { background: var(--volt); color: #000; }
+
+.dev-card p {
+    font-size: 11px;
+    color: #cfc9ec;
+    line-height: 1.35;
+}
+
+.dev-launch-btn {
+    align-self: flex-start;
+    background: #080517;
+    color: var(--cyan);
+    border: 1px solid var(--cyan);
+    padding: 4px 10px;
+    font-family: inherit;
+    font-size: 10px;
+    font-weight: 700;
+    cursor: pointer;
+    margin-top: 2px;
+}
+
+.dev-card:hover .dev-launch-btn {
+    background: var(--gold);
+    color: #000;
+    border-color: #000;
+}
+
+/* Top Dev Toolbar */
+.dev-top-toolbar {
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+    justify-content: center;
+    margin-bottom: 2px;
+}
+
+/* Middle Diagnostic Panel (Left side of screen) */
+.hud-mid-row {
+    display: flex;
+    justify-content: flex-start;
+    align-items: center;
+    margin: 4px 0;
+}
+
+#dev-diag-panel {
+    width: 266px;
+    background: var(--panel-bg);
+    border: 2px solid var(--cyan);
+    box-shadow: 5px 5px 0px #000;
+    padding: 8px 10px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.diag-header {
+    display: flex;
+    justify-content: space-between;
+    font-size: 10px;
+    font-weight: 700;
+    color: var(--cyan);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.15);
+    padding-bottom: 4px;
+}
+
+.key-viz-row {
+    display: flex;
+    gap: 4px;
+    justify-content: space-between;
+}
+
+.key-cap {
+    flex: 1;
+    background: #120d29;
+    border: 1px solid rgba(255, 255, 255, 0.25);
+    color: #9e96c4;
+    font-size: 9px;
+    font-weight: 700;
+    text-align: center;
+    padding: 3px 2px;
+}
+
+.key-cap.key-wide {
+    flex: 1.5;
+}
+
+.key-cap.pressed {
+    background: var(--cyan);
+    color: #000;
+    border-color: #fff;
+    box-shadow: 0 0 8px var(--cyan);
+}
+
+#diag-compass-canvas {
+    width: 100%;
+    height: 114px;
+    background: #060412;
+    border: 1px solid rgba(255, 255, 255, 0.22);
+    display: block;
+}
+
+.diag-stats-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 3px 8px;
+    font-size: 10px;
+    color: #b8b2d8;
+}
+
+.diag-stats-grid strong {
+    color: #ffffff;
+}
+
+.diag-toggles-row, .buffer-mode-row {
+    display: flex;
+    gap: 4px;
+}
+
+.mini-dev-btn {
+    flex: 1;
+    background: #140f2d;
+    color: #dcd6f7;
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    padding: 4px 5px;
+    font-family: inherit;
+    font-size: 9px;
+    font-weight: 700;
+    cursor: pointer;
+}
+
+.mini-dev-btn:hover, .mini-dev-btn.active {
+    background: var(--cyan);
+    color: #000;
+    border-color: #fff;
+}
+
+.tuning-subhead {
+    font-size: 9px;
+    font-weight: 700;
+    color: var(--gold);
+    letter-spacing: 0.8px;
+    border-bottom: 1px solid rgba(255, 230, 0, 0.25);
+    padding-bottom: 2px;
+    margin-top: 4px;
+}
