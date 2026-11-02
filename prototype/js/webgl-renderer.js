@@ -708,8 +708,6 @@ RRR.WebGLRenderer = class WebGLRenderer {
         const spline = this.trackSpline;
         const samples = spline.samples;
         const n = samples.length;
-        const hw = spline.roadHalfWidth;
-        const curbW = 1.65;
 
         const trackVerts = [];
         const jumbotronVerts = [];
@@ -717,6 +715,12 @@ RRR.WebGLRenderer = class WebGLRenderer {
         for (let i = 0; i < n; i++) {
             const s0 = samples[i];
             const s1 = samples[(i + 1) % n];
+            const hw0 = s0.halfWidth || spline.roadHalfWidth;
+            const hw1 = s1.halfWidth || spline.roadHalfWidth;
+            const chev = s0.chevronIntensity || 0.0;
+            const inCorner = chev >= 0.15;
+            const curbW = inCorner ? 2.1 : 1.45;
+            const curbH = inCorner ? 0.48 : 0.55;
 
             const addPt = (s, lat, upOff) => [
                 s.pos[0] + s.right[0] * lat + s.up[0] * upOff,
@@ -724,27 +728,95 @@ RRR.WebGLRenderer = class WebGLRenderer {
                 s.pos[2] + s.right[2] * lat + s.up[2] * upOff
             ];
 
-            // Road Asphalt Surface (zoneId = 0.0)
-            const rL0 = addPt(s0, -hw, 0);
-            const rR0 = addPt(s0, hw, 0);
-            const rR1 = addPt(s1, hw, 0);
-            const rL1 = addPt(s1, -hw, 0);
+            // 1. Road Asphalt Surface (zoneId = 0.0) hugging dynamic road width envelope
+            const rL0 = addPt(s0, -hw0, 0);
+            const rR0 = addPt(s0, hw0, 0);
+            const rR1 = addPt(s1, hw1, 0);
+            const rL1 = addPt(s1, -hw1, 0);
             this.pushQuad(trackVerts, rL0, rR0, rR1, rL1, s0.up, [0.5, 0.0, 0.0, 0.0], [0, i * 0.25], [1, (i + 1) * 0.25]);
 
-            // Left & Right Raised Curbs / Guardrails (zoneId = 0.1)
-            const cL0 = addPt(s0, -hw - curbW, 0.45);
-            const cL1 = addPt(s1, -hw - curbW, 0.45);
-            this.pushQuad(trackVerts, cL0, rL0, rL1, cL1, s0.up, [0.8, 0.1, 0.0, 0.0], [0, i * 0.5], [1, (i + 1) * 0.5]);
+            // 2. Corner-Focused Apex Rumble Curbs vs Straightaway Guardrail Barriers
+            const cL0 = addPt(s0, -hw0 - curbW, curbH);
+            const cL1 = addPt(s1, -hw1 - curbW, curbH);
+            const cR0 = addPt(s0, hw0 + curbW, curbH);
+            const cR1 = addPt(s1, hw1 + curbW, curbH);
 
-            const cR0 = addPt(s0, hw + curbW, 0.45);
-            const cR1 = addPt(s1, hw + curbW, 0.45);
-            this.pushQuad(trackVerts, rR0, cR0, cR1, rR1, s0.up, [0.8, 0.1, 0.0, 0.0], [0, i * 0.5], [1, (i + 1) * 0.5]);
+            if (inCorner) {
+                // High-contrast alternating Vibe rumble curbs at corners (zoneId = 0.1)
+                const curbGlow = Math.min(0.45, chev * 0.45);
+                this.pushQuad(trackVerts, cL0, rL0, rL1, cL1, s0.up, [0.9, 0.1, 0.0, curbGlow], [0, i * 0.65], [1, (i + 1) * 0.65]);
+                this.pushQuad(trackVerts, rR0, cR0, cR1, rR1, s0.up, [0.9, 0.1, 0.0, curbGlow], [0, i * 0.65], [1, (i + 1) * 0.65]);
+
+                // Inner-apex traversable rumble apron strip (1.4m wide, 0.06m high) on inside of turn
+                const apexSide = s0.apexSide || Math.sign(s0.curvatureRadPerMeter || s0.curvature || 0);
+                if (apexSide !== 0) {
+                    const apronW = 1.4;
+                    const aOuter0 = addPt(s0, apexSide * hw0, 0.06);
+                    const aInner0 = addPt(s0, apexSide * (hw0 - apronW), 0.02);
+                    const aInner1 = addPt(s1, apexSide * (hw1 - apronW), 0.02);
+                    const aOuter1 = addPt(s1, apexSide * hw1, 0.06);
+                    if (apexSide < 0) {
+                        this.pushQuad(trackVerts, aOuter0, aInner0, aInner1, aOuter1, s0.up, [0.95, 0.1, 0.0, 0.3], [0, i * 0.85], [1, (i + 1) * 0.85]);
+                    } else {
+                        this.pushQuad(trackVerts, aInner0, aOuter0, aOuter1, aInner1, s0.up, [0.95, 0.1, 0.0, 0.3], [0, i * 0.85], [1, (i + 1) * 0.85]);
+                    }
+                }
+            } else {
+                // Sleek architectural concrete/metal guardrail barriers on straights (zoneId = 0.3)
+                this.pushQuad(trackVerts, cL0, rL0, rL1, cL1, s0.up, [0.75, 0.3, 0.0, 0.0], [0, i * 0.25], [1, (i + 1) * 0.25]);
+                this.pushQuad(trackVerts, rR0, cR0, cR1, rR1, s0.up, [0.75, 0.3, 0.0, 0.0], [0, i * 0.25], [1, (i + 1) * 0.25]);
+
+                // Periodic straightaway reflector studs so speed sense remains crisp
+                if (i % 6 === 0) {
+                    const studL = addPt(s0, -hw0 - curbW * 0.5, curbH + 0.18);
+                    const studR = addPt(s0, hw0 + curbW * 0.5, curbH + 0.18);
+                    this.pushBox(trackVerts, studL, [0.28, 0.24, 0.55], [1.0, 0.4, 0.0, 0.85]);
+                    this.pushBox(trackVerts, studR, [0.28, 0.24, 0.55], [1.0, 0.4, 0.0, 0.85]);
+                }
+            }
+
+            // 3. Outer-Wall Neon Chevron Sightline Boards (>>>) for 200m+ corner telegraphing
+            if (chev > 0.24 && i % 3 === 0) {
+                const turnDir = Math.sign(s0.curvatureRadPerMeter || s0.curvature || 1);
+                const outerSide = -turnDir; // Left wall (-1) for Right turn (+1), Right wall (+1) for Left turn (-1)
+                const boardBase = addPt(s0, outerSide * (hw0 + curbW + 1.1), 2.5);
+
+                // Backing signpost & dark frame (zoneId = 0.3)
+                this.pushBox(trackVerts, [boardBase[0], boardBase[1] - 1.1, boardBase[2]], [0.45, 2.6, 0.45], [0.5, 0.3, 0.0, 0.0]);
+                this.pushBox(trackVerts, boardBase, [1.8, 1.55, 1.8], [0.4, 0.3, 0.0, 0.0]);
+
+                // High-visibility glowing neon chevron arrow strips pointing toward the inner apex (zoneId = 0.4)
+                const tipOffset = turnDir * 0.55;
+                const upperWing = addPt(s0, outerSide * (hw0 + curbW + 0.85) + tipOffset * 0.5, 2.92);
+                const midTip = addPt(s0, outerSide * (hw0 + curbW + 0.72) + tipOffset, 2.50);
+                const lowerWing = addPt(s0, outerSide * (hw0 + curbW + 0.85) + tipOffset * 0.5, 2.08);
+                this.pushBox(trackVerts, upperWing, [1.35, 0.34, 1.35], [1.0, 0.4, 0.0, 1.0]);
+                this.pushBox(trackVerts, midTip, [1.45, 0.38, 1.45], [1.0, 0.4, 0.0, 1.0]);
+                this.pushBox(trackVerts, lowerWing, [1.35, 0.34, 1.35], [1.0, 0.4, 0.0, 1.0]);
+            }
+
+            // 4. Corner Turn-In Distance Marker Pillars (150m / 100m / 50m countdown gates)
+            if (s0.isCornerEntryGate) {
+                const bars = s0.isCornerEntryGate === 150 ? 3 : (s0.isCornerEntryGate === 100 ? 2 : 1);
+                const pilH = 3.6 + bars * 1.05;
+                for (const side of [-1, 1]) {
+                    const gatePos = addPt(s0, side * (hw0 + curbW + 1.6), 0);
+                    // Structural marker pylon (zoneId = 0.3)
+                    this.pushBox(trackVerts, [gatePos[0], gatePos[1] + pilH * 0.5, gatePos[2]], [0.85, pilH, 0.85], [0.8, 0.3, 0.0, 0.0]);
+                    // 3-bar (150m), 2-bar (100m), or 1-bar (50m) glowing neon countdown stripes (zoneId = 0.4)
+                    for (let b = 0; b < bars; b++) {
+                        const barY = gatePos[1] + 2.2 + b * 1.15;
+                        const barInward = addPt(s0, side * (hw0 + curbW + 1.15), 2.2 + b * 1.15);
+                        this.pushBox(trackVerts, [barInward[0], barY, barInward[2]], [1.55, 0.42, 1.15], [1.0, 0.4, 0.0, 1.0]);
+                    }
+                }
+            }
 
             // Sector-Specific Hiroshi Nagai Set-Pieces!
             // SECTOR 0: Emerald Coast Palm Trees & Sunlit Promenade
             if (s0.zone === 0 && i % 9 === 0) {
                 for (const side of [-1, 1]) {
-                    const base = addPt(s0, side * (hw + 5.5), 0);
+                    const base = addPt(s0, side * (hw0 + 5.5), 0);
                     // Palm Trunk
                     this.pushBox(trackVerts, [base[0], base[1] + 5.5, base[2]], [0.9, 11.0, 0.9], [0.6, 0.3, 0.0, 0.0]);
                     // Crisp Geometric Palm Fronds (zoneId = 0.2)
@@ -756,45 +828,45 @@ RRR.WebGLRenderer = class WebGLRenderer {
 
             // SECTOR 1: Boiler Room Bass Tunnel (Pulsing Neon Acoustic Ribs)
             if (s0.zone === 1 && i % 5 === 0) {
-                const pL = addPt(s0, -hw - 2.0, 0);
-                const pR = addPt(s0, hw + 2.0, 0);
-                const pTopL = addPt(s0, -hw - 1.0, 11.5);
-                const pTopR = addPt(s0, hw + 1.0, 11.5);
+                const pL = addPt(s0, -hw0 - 2.4, 0);
+                const pR = addPt(s0, hw0 + 2.4, 0);
+                const pTopL = addPt(s0, -hw0 - 1.2, 11.5);
+                const pTopR = addPt(s0, hw0 + 1.2, 11.5);
                 // Concrete outer arch (zoneId = 0.3)
                 this.pushBox(trackVerts, [pL[0], pL[1] + 5.5, pL[2]], [1.6, 11.5, 1.6], [0.5, 0.3, 0.0, 0.0]);
                 this.pushBox(trackVerts, [pR[0], pR[1] + 5.5, pR[2]], [1.6, 11.5, 1.6], [0.5, 0.3, 0.0, 0.0]);
                 // Glowing Sub-Bass Neon Roof Beam (zoneId = 0.4)
                 const roofMid = [(pTopL[0] + pTopR[0]) * 0.5, (pTopL[1] + pTopR[1]) * 0.5, (pTopL[2] + pTopR[2]) * 0.5];
-                this.pushBox(trackVerts, roofMid, [hw * 2.1, 1.1, 1.4], [1.0, 0.4, 0.0, 1.0]);
+                this.pushBox(trackVerts, roofMid, [hw0 * 2.15, 1.1, 1.4], [1.0, 0.4, 0.0, 1.0]);
             }
 
             // SECTOR 2: Bayshore Suspension Bridge Towers & Cables
             if (s0.zone === 2 && i % 8 === 0) {
-                const pL = addPt(s0, -hw - 2.2, 0);
-                const pR = addPt(s0, hw + 2.2, 0);
+                const pL = addPt(s0, -hw0 - 2.4, 0);
+                const pR = addPt(s0, hw0 + 2.4, 0);
                 const towerH = (i % 32 === 0) ? 28.0 : 12.0;
                 const zId = (i % 32 === 0) ? 0.3 : 0.4;
                 this.pushBox(trackVerts, [pL[0], pL[1] + towerH * 0.5, pL[2]], [1.4, towerH, 1.4], [0.9, zId, 0.0, zId === 0.4 ? 0.8 : 0.0]);
                 this.pushBox(trackVerts, [pR[0], pR[1] + towerH * 0.5, pR[2]], [1.4, towerH, 1.4], [0.9, zId, 0.0, zId === 0.4 ? 0.8 : 0.0]);
                 if (i % 32 === 0) {
                     const crossMid = [(pL[0] + pR[0]) * 0.5, pL[1] + 22.0, (pL[2] + pR[2]) * 0.5];
-                    this.pushBox(trackVerts, crossMid, [hw * 2.2, 2.2, 2.2], [0.9, 0.3, 0.0, 0.0]);
+                    this.pushBox(trackVerts, crossMid, [hw0 * 2.25, 2.2, 2.2], [0.9, 0.3, 0.0, 0.0]);
                 }
             }
 
             // SECTOR 3: Shibuya Neon Hairpins (Stylized Monolith Towers & Neon Strips)
             if (s0.zone === 3 && i % 10 === 0) {
                 for (const side of [-1, 1]) {
-                    const bPos = addPt(s0, side * (hw + 11.0), 0);
+                    const bPos = addPt(s0, side * (hw0 + 11.0), 0);
                     const bH = 22.0 + ((i * 13) % 18);
                     this.pushBox(trackVerts, [bPos[0], bPos[1] + bH * 0.4, bPos[2]], [7.5, bH, 7.5], [0.6, 0.3, 0.0, 0.0]);
                     // Neon vertical billboard strip on building face
-                    const nPos = addPt(s0, side * (hw + 6.9), bH * 0.45);
+                    const nPos = addPt(s0, side * (hw0 + 6.9), bH * 0.45);
                     this.pushBox(trackVerts, nPos, [0.6, bH * 0.65, 2.4], [1.0, 0.4, 0.0, 1.0]);
                 }
             }
 
-            // GIANT TRACKSIDE BOILER ROOM DJ JUMBOTRONS (Every 50 samples along the course!)
+            // GIANT TRACKSIDE BOILER ROOM DJ JUMBOTRONS (Every 48 samples along the course!)
             if (i % 48 === 0) {
                 // Overhead or Trackside Gantry Frame
                 const jRight = s0.right;
@@ -809,8 +881,8 @@ RRR.WebGLRenderer = class WebGLRenderer {
                 const halfH = 4.6;
 
                 // Support Pillars
-                const pilL = addPt(s0, -hw - 2.4, 5.5);
-                const pilR = addPt(s0, hw + 2.4, 5.5);
+                const pilL = addPt(s0, -hw0 - 2.6, 5.5);
+                const pilR = addPt(s0, hw0 + 2.6, 5.5);
                 this.pushBox(trackVerts, pilL, [1.2, 13.0, 1.2], [0.7, 0.3, 0.0, 0.0]);
                 this.pushBox(trackVerts, pilR, [1.2, 13.0, 1.2], [0.7, 0.3, 0.0, 0.0]);
 

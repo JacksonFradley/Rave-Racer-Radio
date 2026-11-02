@@ -17,22 +17,23 @@ RRR.TRACK_PRESETS = {
         name: 'TRACK 01 // STRAIGHTAWAY & DRAG RUNWAY',
         subtitle: 'Zero-Curvature 600m Straight + Wide Turnaround Loop',
         desc: 'Isolates W/S acceleration, A/D lane changes, guardrail slides, FOV warp, and high-speed Paint Smudge without corner curvature.',
-        roadHalfWidth: 16.0,
+        roadHalfWidth: 15.0,
         controlPoints: [
             // 750m Dead-Straight Main Runway along +Z (X = 0 across P_last..P_4 so curvature is strictly 0.000 at start!)
-            { pos: [0, 0, 0], bank: 0.0, zone: 0 },
-            { pos: [0, 0, 150], bank: 0.0, zone: 0 },
-            { pos: [0, 0, 300], bank: 0.0, zone: 0 },
-            { pos: [0, 0, 450], bank: 0.0, zone: 1 },
-            { pos: [0, 0, 600], bank: 0.0, zone: 1 },
-            { pos: [0, 0, 750], bank: 0.0, zone: 2 },
+            { pos: [0, 0, 0], bank: 0.0, halfWidth: 14.5, zone: 0 },
+            { pos: [0, 0, 150], bank: 0.0, halfWidth: 14.0, zone: 0 },
+            { pos: [0, 0, 300], bank: 0.0, halfWidth: 13.5, zone: 0 },
+            { pos: [0, 0, 450], bank: 0.0, halfWidth: 13.0, zone: 1 },
+            { pos: [0, 0, 600], bank: 0.0, halfWidth: 13.5, zone: 1 },
+            { pos: [0, 0, 750], bank: 0.0, halfWidth: 15.5, zone: 2 },
             // Wide gentle turnaround loop back to start
-            { pos: [-120, 0, 880], bank: 0.05, zone: 2 },
-            { pos: [-260, 0, 750], bank: 0.0, zone: 2 },
-            { pos: [-260, 0, 350], bank: 0.0, zone: 3 },
-            { pos: [-260, 0, -150], bank: 0.0, zone: 3 },
-            { pos: [-120, 0, -280], bank: 0.05, zone: 0 },
-            { pos: [0, 0, -150], bank: 0.0, zone: 0 }
+            { pos: [-120, 0, 880], bank: 0.06, halfWidth: 17.0, zone: 2 },
+            { pos: [-260, 0, 750], bank: 0.04, halfWidth: 16.0, zone: 2 },
+            { pos: [-260, 0, 350], bank: 0.0, halfWidth: 13.5, zone: 3 },
+            { pos: [-260, 0, -180], bank: 0.0, halfWidth: 15.0, zone: 3 },
+            { pos: [-130, 0, -320], bank: 0.06, halfWidth: 16.8, zone: 0 },
+            { pos: [0, 0, -220], bank: 0.0, halfWidth: 15.0, zone: 0 },
+            { pos: [0, 0, -110], bank: 0.0, halfWidth: 14.8, zone: 0 }
         ]
     },
 
@@ -43,19 +44,19 @@ RRR.TRACK_PRESETS = {
         desc: 'Designed to tune R4 drift initiation, slip angles (15°–48°), centrifugal corner push, drift charge rate, and boost exits.',
         roadHalfWidth: 15.0,
         controlPoints: [
-            { pos: [0, 0, 0], bank: 0.0, zone: 0 },
-            { pos: [0, 0, 120], bank: 0.0, zone: 0 },
-            // Long sweeping Right drift arc
-            { pos: [-70, 0, 230], bank: 0.12, zone: 1 },
-            { pos: [-190, 0, 230], bank: 0.14, zone: 1 },
-            { pos: [-260, 0, 120], bank: 0.12, zone: 1 },
+            { pos: [0, 0, 0], bank: 0.0, halfWidth: 13.5, zone: 0 },
+            { pos: [0, 0, 120], bank: 0.0, halfWidth: 15.2, zone: 0 },
+            // Long sweeping Right drift arc (widened apex for deep slip angles)
+            { pos: [-70, 0, 230], bank: 0.12, halfWidth: 16.8, zone: 1 },
+            { pos: [-190, 0, 230], bank: 0.14, halfWidth: 17.2, zone: 1 },
+            { pos: [-260, 0, 120], bank: 0.12, halfWidth: 16.0, zone: 1 },
             // S-Chicane transition
-            { pos: [-210, 0, 10], bank: -0.10, zone: 2 },
-            { pos: [-270, 0, -100], bank: 0.12, zone: 2 },
-            // Tight 180° Hairpin Left
-            { pos: [-160, 0, -210], bank: -0.16, zone: 3 },
-            { pos: [-30, 0, -160], bank: 0.10, zone: 3 },
-            { pos: [0, 0, -80], bank: 0.0, zone: 0 }
+            { pos: [-210, 0, 10], bank: -0.10, halfWidth: 15.2, zone: 2 },
+            { pos: [-270, 0, -100], bank: 0.12, halfWidth: 15.8, zone: 2 },
+            // Tight 180° Hairpin Left (wide entry funnel + wide drift apex)
+            { pos: [-160, 0, -210], bank: -0.16, halfWidth: 17.0, zone: 3 },
+            { pos: [-30, 0, -160], bank: 0.10, halfWidth: 15.5, zone: 3 },
+            { pos: [0, 0, -80], bank: 0.0, halfWidth: 13.8, zone: 0 }
         ]
     },
 
@@ -64,17 +65,17 @@ RRR.TRACK_PRESETS = {
         name: 'TRACK 03 // ELEVATION & BANKING ROLLERCOASTER',
         subtitle: 'Steep +28m Climb, Blind Crest, Plunge & High-Banked Bowl',
         desc: 'Tests 3D surface normal alignment, uphill/downhill camera pitch tracking, and banked corner roll.',
-        roadHalfWidth: 13.5,
+        roadHalfWidth: 14.0,
         controlPoints: [
-            { pos: [0, 0, 0], bank: 0.0, zone: 0 },
-            { pos: [0, 14, 130], bank: 0.0, zone: 0 },
-            { pos: [0, 28, 250], bank: 0.0, zone: 2 },
-            { pos: [-90, 18, 360], bank: 0.24, zone: 2 },
-            { pos: [-220, -8, 310], bank: 0.28, zone: 1 },
-            { pos: [-280, -14, 160], bank: -0.22, zone: 1 },
-            { pos: [-220, 6, 20], bank: 0.18, zone: 3 },
-            { pos: [-100, 12, -100], bank: 0.22, zone: 3 },
-            { pos: [-15, 2, -90], bank: 0.08, zone: 0 }
+            { pos: [0, 0, 0], bank: 0.0, halfWidth: 13.0, zone: 0 },
+            { pos: [0, 14, 130], bank: 0.0, halfWidth: 12.6, zone: 0 },
+            { pos: [0, 28, 250], bank: 0.0, halfWidth: 14.2, zone: 2 },
+            { pos: [-90, 18, 360], bank: 0.24, halfWidth: 16.5, zone: 2 },
+            { pos: [-220, -8, 310], bank: 0.28, halfWidth: 16.8, zone: 1 },
+            { pos: [-280, -14, 160], bank: -0.22, halfWidth: 15.8, zone: 1 },
+            { pos: [-220, 6, 20], bank: 0.18, halfWidth: 15.2, zone: 3 },
+            { pos: [-100, 12, -100], bank: 0.22, halfWidth: 16.2, zone: 3 },
+            { pos: [-15, 2, -90], bank: 0.08, halfWidth: 13.8, zone: 0 }
         ]
     },
 
@@ -83,28 +84,27 @@ RRR.TRACK_PRESETS = {
         name: 'TRACK 04 // FULL NAGAI BAYSHORE CIRCUIT',
         subtitle: 'Complete 4-Sector Circuit (Palms → Bass Tunnel → Bridge → Shibuya)',
         desc: 'The full race course with all 4 Track Vibe Zones, trackside DJ Jumbotrons, and 3 AI Rivals.',
-        roadHalfWidth: 12.5,
+        roadHalfWidth: 13.5,
         controlPoints: [
-            // Sector 0: Emerald Coast Palms
-            { pos: [0, 0, 0], bank: 0.0, zone: 0 },
-            { pos: [0, 0, 140], bank: 0.0, zone: 0 },
-            { pos: [-35, 2, 270], bank: 0.08, zone: 0 },
-            { pos: [-130, 5, 360], bank: 0.14, zone: 0 },
-            // Sector 1: Boiler Room Bass Tunnel
-            { pos: [-260, 2, 380], bank: 0.08, zone: 1 },
-            { pos: [-380, -6, 320], bank: -0.12, zone: 1 },
-            { pos: [-450, -10, 200], bank: 0.14, zone: 1 },
-            { pos: [-440, -6, 60], bank: 0.10, zone: 1 },
-            // Sector 2: Bayshore Suspension Bridge
-            { pos: [-360, 8, -70], bank: -0.06, zone: 2 },
-            { pos: [-240, 16, -160], bank: 0.0, zone: 2 },
-            { pos: [-90, 16, -210], bank: 0.0, zone: 2 },
-            { pos: [60, 10, -210], bank: 0.08, zone: 2 },
-            // Sector 3: Shibuya Neon Hairpins
-            { pos: [175, 4, -140], bank: 0.18, zone: 3 },
-            { pos: [200, 0, -10], bank: 0.18, zone: 3 },
-            { pos: [110, 0, 65], bank: -0.12, zone: 3 },
-            { pos: [20, 0, -90], bank: 0.08, zone: 3 }
+            // Sector 0: Emerald Coast Palms (narrow fast straight into wide coastal sweep)
+            { pos: [0, 0, 0], bank: 0.0, halfWidth: 12.4, zone: 0 },
+            { pos: [0, 0, 140], bank: 0.0, halfWidth: 12.2, zone: 0 },
+            { pos: [-35, 2, 270], bank: 0.08, halfWidth: 14.8, zone: 0 },
+            { pos: [-130, 5, 360], bank: 0.14, halfWidth: 16.4, zone: 0 },
+            // Sector 1: Boiler Room Bass Tunnel (sweeping acoustic S-bends)
+            { pos: [-260, 2, 380], bank: 0.08, halfWidth: 15.2, zone: 1 },
+            { pos: [-380, -6, 320], bank: -0.12, halfWidth: 16.0, zone: 1 },
+            { pos: [-450, -10, 200], bank: 0.14, halfWidth: 16.6, zone: 1 },
+            { pos: [-440, -6, 60], bank: 0.10, halfWidth: 14.8, zone: 1 },
+            // Sector 2: Bayshore Suspension Bridge (high-speed decompression straight)
+            { pos: [-360, 8, -70], bank: -0.06, halfWidth: 13.6, zone: 2 },
+            { pos: [-270, 16, -185], bank: 0.0, halfWidth: 12.2, zone: 2 },
+            { pos: [-160, 16, -255], bank: 0.0, halfWidth: 12.2, zone: 2 },
+            { pos: [-45, 10, -250], bank: 0.08, halfWidth: 15.2, zone: 2 },
+            // Sector 3: Shibuya Neon Hairpins (wide entry funnel & smooth S-curve return to main straight)
+            { pos: [45, 4, -195], bank: 0.16, halfWidth: 16.6, zone: 3 },
+            { pos: [60, 0, -125], bank: 0.18, halfWidth: 17.0, zone: 3 },
+            { pos: [18, 0, -65], bank: 0.10, halfWidth: 15.4, zone: 3 }
         ]
     }
 };
@@ -119,7 +119,7 @@ RRR.TrackSpline = class TrackSpline {
         const preset = RRR.TRACK_PRESETS[presetKey] || RRR.TRACK_PRESETS.nagai_bayshore;
         this.activePresetKey = preset.id;
         this.activePreset = preset;
-        this.roadHalfWidth = preset.roadHalfWidth || 12.5;
+        this.roadHalfWidth = preset.roadHalfWidth || 13.5;
         this.controlPoints = preset.controlPoints;
         this.totalLength = 0;
         this.samples = [];
@@ -138,12 +138,83 @@ RRR.TrackSpline = class TrackSpline {
         );
     }
 
+    /**
+     * PIP-01: Centripetal Catmull-Rom (alpha = 0.5) Barry-Goldman evaluation.
+     * Eliminates loop/bowing overshoots when transitioning from long straights into tight hairpins.
+     */
+    centripetalCatmullRomSegment(cp0, cp1, cp2, cp3, localT, defaultHalfWidth) {
+        const distAlpha = (a, b) => {
+            const d = Math.hypot(b[0] - a[0], b[1] - a[1], b[2] - a[2]);
+            return Math.max(0.001, Math.pow(d, 0.5));
+        };
+
+        const dt0 = distAlpha(cp0.pos, cp1.pos);
+        const dt1 = distAlpha(cp1.pos, cp2.pos);
+        const dt2 = distAlpha(cp2.pos, cp3.pos);
+
+        const t0 = 0.0;
+        const t1 = dt0;
+        const t2 = t1 + dt1;
+        const t3 = t2 + dt2;
+        const t = t1 + localT * dt1;
+
+        const evalScalar = (v0, v1, v2, v3) => {
+            const a1 = ((t1 - t) / (t1 - t0)) * v0 + ((t - t0) / (t1 - t0)) * v1;
+            const a2 = ((t2 - t) / (t2 - t1)) * v1 + ((t - t1) / (t2 - t1)) * v2;
+            const a3 = ((t3 - t) / (t3 - t2)) * v2 + ((t - t2) / (t3 - t2)) * v3;
+
+            const b1 = ((t2 - t) / (t2 - t0)) * a1 + ((t - t0) / (t2 - t0)) * a2;
+            const b2 = ((t3 - t) / (t3 - t1)) * a2 + ((t - t1) / (t3 - t1)) * a3;
+
+            return ((t2 - t) / (t2 - t1)) * b1 + ((t - t1) / (t2 - t1)) * b2;
+        };
+
+        const hw0 = cp0.halfWidth !== undefined ? cp0.halfWidth : defaultHalfWidth;
+        const hw1 = cp1.halfWidth !== undefined ? cp1.halfWidth : defaultHalfWidth;
+        const hw2 = cp2.halfWidth !== undefined ? cp2.halfWidth : defaultHalfWidth;
+        const hw3 = cp3.halfWidth !== undefined ? cp3.halfWidth : defaultHalfWidth;
+
+        return {
+            pos: [
+                evalScalar(cp0.pos[0], cp1.pos[0], cp2.pos[0], cp3.pos[0]),
+                evalScalar(cp0.pos[1], cp1.pos[1], cp2.pos[1], cp3.pos[1]),
+                evalScalar(cp0.pos[2], cp1.pos[2], cp2.pos[2], cp3.pos[2])
+            ],
+            bank: evalScalar(cp0.bank || 0, cp1.bank || 0, cp2.bank || 0, cp3.bank || 0),
+            halfWidth: evalScalar(hw0, hw1, hw2, hw3)
+        };
+    }
+
+    smoothCircular5Tap(arr, passes = 1) {
+        const len = arr.length;
+        let src = arr.slice();
+        let dst = new Array(len);
+        for (let p = 0; p < passes; p++) {
+            for (let i = 0; i < len; i++) {
+                const v0 = src[(i - 2 + len) % len];
+                const v1 = src[(i - 1 + len) % len];
+                const v2 = src[i];
+                const v3 = src[(i + 1) % len];
+                const v4 = src[(i + 2) % len];
+                dst[i] = (v0 + 4 * v1 + 6 * v2 + 4 * v3 + v4) / 16.0;
+            }
+            const tmp = src;
+            src = dst;
+            dst = tmp;
+        }
+        return src;
+    }
+
     buildSplineTable() {
         const n = this.controlPoints.length;
-        const rawPoints = [];
+        const rawCount = 2880;
+        const densePoints = new Array(rawCount);
+        const cumDist = new Float64Array(rawCount + 1);
+        cumDist[0] = 0.0;
 
-        for (let i = 0; i < this.numSamples; i++) {
-            const u = (i / this.numSamples) * n;
+        // 1. Dense Centripetal Catmull-Rom evaluation + cumulative 3D arc-length table
+        for (let k = 0; k < rawCount; k++) {
+            const u = (k / rawCount) * n;
             const seg = Math.floor(u) % n;
             const localT = u - Math.floor(u);
 
@@ -152,45 +223,136 @@ RRR.TrackSpline = class TrackSpline {
             const cp2 = this.controlPoints[(seg + 1) % n];
             const cp3 = this.controlPoints[(seg + 2) % n];
 
-            const x = this.catmullRom(cp0.pos[0], cp1.pos[0], cp2.pos[0], cp3.pos[0], localT);
-            const y = this.catmullRom(cp0.pos[1], cp1.pos[1], cp2.pos[1], cp3.pos[1], localT);
-            const z = this.catmullRom(cp0.pos[2], cp1.pos[2], cp2.pos[2], cp3.pos[2], localT);
-            const bank = this.catmullRom(cp0.bank, cp1.bank, cp2.bank, cp3.bank, localT);
+            const evalPt = this.centripetalCatmullRomSegment(cp0, cp1, cp2, cp3, localT, this.roadHalfWidth);
+            densePoints[k] = {
+                pos: evalPt.pos,
+                bank: evalPt.bank,
+                halfWidth: evalPt.halfWidth,
+                zone: cp1.zone !== undefined ? cp1.zone : (Math.floor((k / rawCount) * 4) % 4)
+            };
+
+            if (k > 0) {
+                const prevPos = densePoints[k - 1].pos;
+                cumDist[k] = cumDist[k - 1] + Math.hypot(
+                    evalPt.pos[0] - prevPos[0],
+                    evalPt.pos[1] - prevPos[1],
+                    evalPt.pos[2] - prevPos[2]
+                );
+            }
+        }
+
+        // Close loop distance from last dense sample back to sample 0
+        const lastDense = densePoints[rawCount - 1].pos;
+        const firstDense = densePoints[0].pos;
+        cumDist[rawCount] = cumDist[rawCount - 1] + Math.hypot(
+            firstDense[0] - lastDense[0],
+            firstDense[1] - lastDense[1],
+            firstDense[2] - lastDense[2]
+        );
+        this.totalLength = cumDist[rawCount];
+
+        // 2. Resample strictly uniform 3D arc-length intervals across this.numSamples = 720
+        const N = this.numSamples;
+        const uniformPts = new Array(N);
+
+        for (let i = 0; i < N; i++) {
+            const targetS = (i / N) * this.totalLength;
+
+            // Binary search cumDist for targetS
+            let lo = 0;
+            let hi = rawCount - 1;
+            while (lo < hi) {
+                const mid = (lo + hi + 1) >> 1;
+                if (cumDist[mid] <= targetS) lo = mid;
+                else hi = mid - 1;
+            }
+
+            const segLen = cumDist[lo + 1] - cumDist[lo];
+            const alpha = segLen > 1e-8 ? (targetS - cumDist[lo]) / segLen : 0.0;
+            const pA = densePoints[lo];
+            const pB = densePoints[(lo + 1) % rawCount];
+
+            const x = pA.pos[0] + (pB.pos[0] - pA.pos[0]) * alpha;
+            const y = pA.pos[1] + (pB.pos[1] - pA.pos[1]) * alpha;
+            const z = pA.pos[2] + (pB.pos[2] - pA.pos[2]) * alpha;
 
             if (x < this.bounds.minX) this.bounds.minX = x;
             if (x > this.bounds.maxX) this.bounds.maxX = x;
             if (z < this.bounds.minZ) this.bounds.minZ = z;
             if (z > this.bounds.maxZ) this.bounds.maxZ = z;
 
-            rawPoints.push({
+            uniformPts[i] = {
+                distance: targetS,
                 pos: [x, y, z],
-                bank: bank,
-                zone: cp1.zone
-            });
+                bank: pA.bank + (pB.bank - pA.bank) * alpha,
+                halfWidth: Math.max(10.0, pA.halfWidth + (pB.halfWidth - pA.halfWidth) * alpha),
+                zone: pA.zone
+            };
         }
 
-        this.totalLength = 0;
-        for (let i = 0; i < this.numSamples; i++) {
-            const prev = rawPoints[(i - 1 + this.numSamples) % this.numSamples];
-            const curr = rawPoints[i];
-            const next = rawPoints[(i + 1) % this.numSamples];
+        // 3. Compute unit tangent forward vectors, yaw, and pitch at uniform arc-length samples
+        const ds = this.totalLength / N;
+        const forwards = new Array(N);
+        const yaws = new Float64Array(N);
+        const pitches = new Float64Array(N);
+
+        for (let i = 0; i < N; i++) {
+            const prev = uniformPts[(i - 1 + N) % N];
+            const next = uniformPts[(i + 1) % N];
 
             const dx = next.pos[0] - prev.pos[0];
             const dy = next.pos[1] - prev.pos[1];
             const dz = next.pos[2] - prev.pos[2];
-            const len = Math.hypot(dx, dy, dz) || 1;
-            const forward = [dx / len, dy / len, dz / len];
+            const len = Math.hypot(dx, dy, dz) || 1.0;
+            const fx = dx / len;
+            const fy = dy / len;
+            const fz = dz / len;
+
+            forwards[i] = [fx, fy, fz];
+            yaws[i] = Math.atan2(-fx, fz);
+            pitches[i] = Math.asin(Math.max(-1.0, Math.min(1.0, fy)));
+        }
+
+        // 4. Compute differential signed curvature kappa(s) = d(yaw)/ds (+ = Right turn, - = Left turn)
+        const rawKappa = new Array(N);
+        for (let i = 0; i < N; i++) {
+            const yawPlus = yaws[(i + 2) % N];
+            const yawMinus = yaws[(i - 2 + N) % N];
+            rawKappa[i] = RRR.wrapAngle(yawPlus - yawMinus) / (4.0 * ds);
+        }
+
+        // 3 passes of 5-tap Gaussian filter to emulate Clothoid (Euler spiral) curvature transitions
+        const smoothKappa = this.smoothCircular5Tap(rawKappa, 3);
+
+        // Progressive curvature-assisted banking & smooth width/bank envelopes
+        const rawBanks = new Array(N);
+        const rawHalfWidths = new Array(N);
+        for (let i = 0; i < N; i++) {
+            const kVal = Math.abs(smoothKappa[i]) < 1e-6 ? 0.0 : smoothKappa[i];
+            smoothKappa[i] = kVal;
+            const bankAssist = Math.max(-0.09, Math.min(0.09, kVal * 12.0));
+            rawBanks[i] = uniformPts[i].bank + bankAssist;
+            rawHalfWidths[i] = uniformPts[i].halfWidth;
+        }
+        const smoothBanks = this.smoothCircular5Tap(rawBanks, 2);
+        const smoothHalfWidths = this.smoothCircular5Tap(rawHalfWidths, 2);
+
+        // 5. Assemble complete sample table with orthonormal frames & corner telegraphing metadata
+        this.samples = new Array(N);
+        for (let i = 0; i < N; i++) {
+            const forward = forwards[i];
+            const bank = Math.abs(smoothBanks[i]) < 1e-6 ? 0.0 : smoothBanks[i];
+            const kappa = smoothKappa[i];
 
             // Right-handed Right vector: forward x worldUp(0, 1, 0) = [-forward.z, 0, forward.x]
             let rx = -forward[2];
-            let ry = 0;
             let rz = forward[0];
-            const rLen = Math.hypot(rx, rz) || 1;
+            const rLen = Math.hypot(rx, rz) || 1.0;
             rx /= rLen;
             rz /= rLen;
 
-            const cosB = Math.cos(curr.bank);
-            const sinB = Math.sin(curr.bank);
+            const cosB = Math.cos(bank);
+            const sinB = Math.sin(bank);
             const bankedRight = [rx * cosB, sinB, rz * cosB];
 
             const up = [
@@ -198,37 +360,55 @@ RRR.TrackSpline = class TrackSpline {
                 bankedRight[2] * forward[0] - bankedRight[0] * forward[2],
                 bankedRight[0] * forward[1] - bankedRight[1] * forward[0]
             ];
+            const uLen = Math.hypot(up[0], up[1], up[2]) || 1.0;
+            up[0] /= uLen;
+            up[1] /= uLen;
+            up[2] /= uLen;
 
-            if (i > 0) {
-                const p0 = rawPoints[i - 1].pos;
-                this.totalLength += Math.hypot(
-                    curr.pos[0] - p0[0],
-                    curr.pos[1] - p0[1],
-                    curr.pos[2] - p0[2]
-                );
-            }
+            const absKappa = Math.abs(kappa);
+            const apexSide = kappa < -0.0018 ? -1 : (kappa > 0.0018 ? 1 : 0);
+            const chevronIntensity = Math.min(1.0, Math.max(0.0, (absKappa - 0.0015) / 0.006));
 
-            const yaw = Math.atan2(-forward[0], forward[2]);
-
-            this.samples.push({
+            this.samples[i] = {
                 index: i,
-                t: i / this.numSamples,
-                distance: this.totalLength,
-                pos: curr.pos,
+                t: i / N,
+                distance: uniformPts[i].distance,
+                pos: uniformPts[i].pos,
                 forward: forward,
                 right: bankedRight,
                 up: up,
-                yaw: yaw,
-                bank: curr.bank,
-                zone: curr.zone !== undefined ? curr.zone : (Math.floor((i / this.numSamples) * 4) % 4)
-            });
+                yaw: yaws[i],
+                pitch: pitches[i],
+                bank: bank,
+                curvatureRadPerMeter: kappa,
+                curvature: kappa * 40.0,
+                halfWidth: smoothHalfWidths[i],
+                apexSide: apexSide,
+                chevronIntensity: chevronIntensity,
+                isCornerEntryGate: 0,
+                zone: uniformPts[i].zone
+            };
         }
 
-        // Compute signed curvature (+ = Right turn ahead, - = Left turn ahead)
-        for (let i = 0; i < this.numSamples; i++) {
-            const s0 = this.samples[i];
-            const s1 = this.samples[(i + 8) % this.numSamples];
-            s0.curvature = RRR.wrapAngle(s1.yaw - s0.yaw);
+        // 6. Place 150m / 100m / 50m Corner Entry Turn-In Marker Gates before major corners
+        const step50 = Math.max(1, Math.round(50.0 / ds));
+        const step100 = Math.max(2, Math.round(100.0 / ds));
+        const step150 = Math.max(3, Math.round(150.0 / ds));
+        const minCooldownSamples = Math.max(8, Math.round(90.0 / ds));
+        let lastEntryIdx = -minCooldownSamples * 2;
+
+        for (let i = 0; i < N; i++) {
+            const prevS = this.samples[(i - 1 + N) % N];
+            const currS = this.samples[i];
+            if (currS.chevronIntensity >= 0.35 && prevS.chevronIntensity < 0.35 && (i - lastEntryIdx) >= minCooldownSamples) {
+                lastEntryIdx = i;
+                const i50 = (i - step50 + N) % N;
+                const i100 = (i - step100 + N) % N;
+                const i150 = (i - step150 + N) % N;
+                if (this.samples[i50].chevronIntensity < 0.32) this.samples[i50].isCornerEntryGate = 50;
+                if (this.samples[i100].chevronIntensity < 0.30) this.samples[i100].isCornerEntryGate = 100;
+                if (this.samples[i150].chevronIntensity < 0.28) this.samples[i150].isCornerEntryGate = 150;
+            }
         }
     }
 
@@ -260,12 +440,25 @@ RRR.TrackSpline = class TrackSpline {
         const uLen = Math.hypot(ux, uy, uz) || 1;
         const up = [ux / uLen, uy / uLen, uz / uLen];
 
+        const curvatureRadPerMeter = s0.curvatureRadPerMeter + (s1.curvatureRadPerMeter - s0.curvatureRadPerMeter) * frac;
+        const curvature = s0.curvature + (s1.curvature - s0.curvature) * frac;
+        const halfWidth = s0.halfWidth + (s1.halfWidth - s0.halfWidth) * frac;
+        const chevronIntensity = s0.chevronIntensity + (s1.chevronIntensity - s0.chevronIntensity) * frac;
+        const apexSide = curvatureRadPerMeter < -0.0018 ? -1 : (curvatureRadPerMeter > 0.0018 ? 1 : 0);
+
         return {
             t: wrapped,
+            distance: wrapped * this.totalLength,
             zone: s0.zone,
             bank: s0.bank + (s1.bank - s0.bank) * frac,
-            curvature: s0.curvature + (s1.curvature - s0.curvature) * frac,
+            curvatureRadPerMeter: curvatureRadPerMeter,
+            curvature: curvature,
+            halfWidth: halfWidth,
+            apexSide: apexSide,
+            chevronIntensity: chevronIntensity,
+            isCornerEntryGate: s0.isCornerEntryGate,
             yaw: Math.atan2(-forward[0], forward[2]),
+            pitch: Math.asin(Math.max(-1.0, Math.min(1.0, forward[1]))),
             pos: [
                 s0.pos[0] + (s1.pos[0] - s0.pos[0]) * frac,
                 s0.pos[1] + (s1.pos[1] - s0.pos[1]) * frac,

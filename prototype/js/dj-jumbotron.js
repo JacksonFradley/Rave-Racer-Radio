@@ -47,13 +47,15 @@ RRR.TrackDJController = class TrackDJController {
         }
     }
 
-    updateAndRender(dt, audioState, vibeState) {
+    updateAndRender(dt, audioState, vibeState, rekordboxController = null) {
         this.time += dt;
         if (this.reactionTimer > 0) {
             this.reactionTimer -= dt;
             if (this.reactionTimer <= 0) {
                 this.onSongMarker(audioState.section);
             }
+        } else if (rekordboxController && rekordboxController.aiActionText) {
+            this.reactionText = rekordboxController.aiActionText;
         }
 
         const ctx = this.ctx;
@@ -322,10 +324,17 @@ RRR.TrackDJController = class TrackDJController {
             ctx.restore();
         }
 
-        // Animated Crossfader in center
-        const faderPos = Math.sin(bpmPhase * 0.5) * 28;
+        // Animated Crossfader in center (driven by Rekordbox Crossfader when active)
+        const faderPos = rekordboxController
+            ? rekordboxController.crossfader * 32
+            : Math.sin(bpmPhase * 0.5) * 28;
         ctx.fillStyle = this.rgb(cEmissive, 1.0);
         ctx.fillRect(w * 0.5 + faderPos - 8, h - 35, 16, 18);
+
+        // Live Rekordbox Scrolling RGB Waveform & Beatgrid Strip on the DJ Booth Console!
+        if (rekordboxController && rekordboxController.renderJumbotronRekordboxOverlay) {
+            rekordboxController.renderJumbotronRekordboxOverlay(ctx, w, h);
+        }
 
         // 5. Jumbotron Broadcast Overlay Telemetry & Scanlines
         ctx.fillStyle = 'rgba(0, 0, 0, 0.58)';

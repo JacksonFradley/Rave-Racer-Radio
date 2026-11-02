@@ -50,6 +50,10 @@ RRR.AudioEngine = class AudioEngine {
         this.collisionDuckTimer = 0;
         this.onBeatCallback = null;
         this.onMarkerCallback = null;
+
+        // Pioneer Rekordbox Dual-Deck MP3 Analyzer & AI DJ Controller (Default active mode)
+        this.rekordboxMode = true;
+        this.rekordbox = RRR.RekordboxController ? new RRR.RekordboxController(this) : null;
     }
 
     init() {
@@ -103,8 +107,21 @@ RRR.AudioEngine = class AudioEngine {
             fxRisers: this.ctx.createGain()
         };
 
+        this.synthMasterBus = this.ctx.createGain();
+        this.synthMasterBus.gain.value = this.rekordboxMode ? 0.0 : 1.0;
+
         for (const k in this.stemBuses) {
-            this.stemBuses[k].connect(this.driftFilter);
+            this.stemBuses[k].connect(this.synthMasterBus);
+        }
+        this.synthMasterBus.connect(this.driftFilter);
+
+        // Rekordbox Dual-Deck Master Bus (feeds into masterFilter -> compressor -> FFT analyser!)
+        this.rekordboxBus = this.ctx.createGain();
+        this.rekordboxBus.gain.value = this.rekordboxMode ? 1.0 : 0.0;
+        this.rekordboxBus.connect(this.masterFilter);
+
+        if (this.rekordbox) {
+            this.rekordbox.init(this.ctx, this.rekordboxBus);
         }
 
         this.driftFilter.connect(this.masterFilter);
@@ -119,6 +136,15 @@ RRR.AudioEngine = class AudioEngine {
         this.isStarted = true;
         this.nextNoteTime = this.ctx.currentTime + 0.05;
         this.scheduleTimer = setInterval(() => this.scheduler(), 25);
+    }
+
+    setRekordboxMode(enabled) {
+        this.rekordboxMode = !!enabled;
+        if (this.ctx && this.synthMasterBus && this.rekordboxBus) {
+            const now = this.ctx.currentTime;
+            this.rekordboxBus.gain.setTargetAtTime(this.rekordboxMode ? 1.0 : 0.0, now, 0.04);
+            this.synthMasterBus.gain.setTargetAtTime(this.rekordboxMode ? 0.0 : 1.0, now, 0.04);
+        }
     }
 
     setupEngineAndTireSynth() {
@@ -153,6 +179,10 @@ RRR.AudioEngine = class AudioEngine {
 
     scheduler() {
         if (!this.ctx || this.ctx.state !== 'running') return;
+        if (this.rekordboxMode && this.rekordbox) {
+            this.nextNoteTime = this.ctx.currentTime + 0.05;
+            return;
+        }
         const lookahead = 0.10;
         while (this.nextNoteTime < this.ctx.currentTime + lookahead) {
             this.scheduleStep(this.stepIndex, this.nextNoteTime);
@@ -395,6 +425,10 @@ RRR.AudioEngine = class AudioEngine {
         this.masterFilter.frequency.setValueAtTime(250, now);
         this.masterFilter.frequency.exponentialRampToValueAtTime(18500, now + 0.32);
 
+        if (this.rekordboxMode && this.rekordbox) {
+            this.rekordbox.triggerVinylScratch(normalizedForce);
+        }
+
         // Vinyl scratch / metallic impact synth
         const osc = this.ctx.createOscillator();
         const gain = this.ctx.createGain();
@@ -474,19 +508,26 @@ RRR.AudioEngine = class AudioEngine {
 
         const now = this.ctx.currentTime;
 
+        // Update Rekordbox Dual-Deck Controller & AI DJ if in Rekordbox Mode
+        if (this.rekordboxMode && this.rekordbox) {
+            this.rekordbox.update(dt, this.raceParams, this.state);
+        }
+
         // Update 5 Stem Volumes dynamically from Race & Emotion State
         const speed = Math.max(0, Math.min(1.2, this.raceParams.normalizedSpeed));
         const cockiness = this.raceParams.cockiness || 0;
 
-        this.state.stems.kickSub = 1.0;
-        this.state.stems.percTops = Math.min(1.0, 0.28 + speed * 0.72);
-        this.state.stems.synthChords = 0.85;
-        // Acid 303 Lead unlocks during high Cockiness (>45%), 1st place, or DROP section
-        const acidTarget = (cockiness > 45 || this.raceParams.isFirstPlace || this.state.section === 'DROP')
-            ? Math.min(1.0, 0.35 + (cockiness / 100) * 0.65)
-            : 0.08;
-        this.state.stems.leadAcid += (acidTarget - this.state.stems.leadAcid) * Math.min(1, dt * 4);
-        this.state.stems.fxRisers = this.raceParams.isDrifting ? Math.min(1.0, this.raceParams.driftCharge) : 0.0;
+        if (!this.rekordboxMode) {
+            this.state.stems.kickSub = 1.0;
+            this.state.stems.percTops = Math.min(1.0, 0.28 + speed * 0.72);
+            this.state.stems.synthChords = 0.85;
+            // Acid 303 Lead unlocks during high Cockiness (>45%), 1st place, or DROP section
+            const acidTarget = (cockiness > 45 || this.raceParams.isFirstPlace || this.state.section === 'DROP')
+                ? Math.min(1.0, 0.35 + (cockiness / 100) * 0.65)
+                : 0.08;
+            this.state.stems.leadAcid += (acidTarget - this.state.stems.leadAcid) * Math.min(1, dt * 4);
+            this.state.stems.fxRisers = this.raceParams.isDrifting ? Math.min(1.0, this.raceParams.driftCharge) : 0.0;
+        }
 
         this.stemBuses.kickSub.gain.setTargetAtTime(this.state.stems.kickSub, now, 0.05);
         this.stemBuses.percTops.gain.setTargetAtTime(this.state.stems.percTops, now, 0.05);

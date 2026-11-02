@@ -8,10 +8,10 @@
 </head>
 <body>
     <!-- Multi-Pass WebGL2 Canvas (Nagai Sky/World + Auto Modellista Cars + Paint Smudge Pass) -->
-    <canvas id="gl-canvas"></canvas>
+    <canvas id="gl-canvas" class="hidden"></canvas>
 
     <!-- 2D Anime Impact Star & Shatter VFX Canvas Overlay -->
-    <canvas id="impact-vfx-canvas"></canvas>
+    <canvas id="impact-vfx-canvas" class="hidden"></canvas>
 
     <!-- ========================================================================
          DEVELOPER STARTING MENU OVERLAY (Toggleable anytime via ESC)
@@ -23,7 +23,7 @@
                     <div class="dev-menu-eyebrow">DEVELOPMENT SANDBOX &amp; DIAGNOSTIC SUITE // BUILD 0.2</div>
                     <h1>RAVE RACER REMIX — MECHANIC TROUBLESHOOTING HUB</h1>
                 </div>
-                <button class="arcade-btn btn-gold" id="btn-resume-from-menu">▶ CLOSE MENU &amp; DRIVE (ESC)</button>
+                <button class="arcade-btn btn-gold hidden" id="btn-resume-from-menu">▶ CLOSE MENU &amp; DRIVE (ESC)</button>
             </div>
 
             <div class="dev-menu-grid">
@@ -106,11 +106,11 @@
 
                         <div class="dev-card" data-launch-mode="lab_dj_audio">
                             <div class="dev-card-head">
-                                <span class="dev-card-title">LAB 04 // BOILER ROOM DJ JUMBOTRON &amp; 5-STEM SYNTH</span>
-                                <span class="dev-tag tag-volt">AUDIO + DJ</span>
+                                <span class="dev-card-title">LAB 04 // REKORDBOX MP3 ANALYZER &amp; AI DJ DECKS</span>
+                                <span class="dev-tag tag-volt">REKORDBOX + DJ</span>
                             </div>
-                            <p>Parks in front of a giant Trackside LED Jumbotron. Trigger song sections (Pre-Drop, Drop, Acid 303), vinyl-scratch collision ducking, and DJ reactions.</p>
-                            <button class="dev-launch-btn">OPEN DJ &amp; AUDIO STUDIO ▶</button>
+                            <p>Load any licensed <strong>.MP3/.WAV</strong> into Dual Decks. Computes BPM, Beatgrid, 3-Band RGB Waveforms &amp; Phrases while AI DJ Kinetix beat-matches, loops, and sweeps EQ/Filters live.</p>
+                            <button class="dev-launch-btn">OPEN REKORDBOX DJ STUDIO ▶</button>
                         </div>
 
                         <div class="dev-card" data-launch-mode="lab_world_map">
@@ -130,7 +130,7 @@
     <!-- ========================================================================
          MAIN IN-GAME HUD & DEVELOPER DIAGNOSTICS OVERLAY
          ======================================================================== -->
-    <div id="hud-root">
+    <div id="hud-root" class="hidden">
         <!-- TOP ROW: 2D Physics Character Portrait Boxes + Dev Menu Bar + Live DJ Monitor -->
         <div class="hud-top-row">
             <div>
@@ -144,6 +144,7 @@
                     <button class="arcade-btn" id="btn-reset-car">↺ RESET CAR (R)</button>
                     <button class="arcade-btn" id="btn-cam-cycle">📷 CAM: CHASE (V)</button>
                     <button class="arcade-btn" id="btn-vectors-toggle">🧭 3D VECTORS: OFF</button>
+                    <button class="arcade-btn btn-gold" id="btn-toggle-rekordbox">💿 REKORDBOX DJ (K)</button>
                     <button id="audio-status-btn">🔊 138 BPM AUDIO</button>
                 </div>
                 <div class="sector-banner">
@@ -292,24 +293,27 @@
     </div>
 
     <!-- Right-Side Collapsible Physics, Shader & Triad Live Tuning Lab -->
-    <div id="tuning-drawer" class="hud-interactive">
+    <div id="tuning-drawer" class="hud-interactive hidden">
         <div class="tuning-header" id="btn-toggle-tuning">
             <span>⚙️ PHYSICS &amp; SHADER TUNING LAB</span>
             <span>▾</span>
         </div>
         <div class="tuning-body">
             <div class="tuning-subhead">DRIVING &amp; HANDLING</div>
+            <div class="buffer-mode-row" style="margin-bottom:8px;">
+                <button class="mini-dev-btn active" id="btn-latch-drift-toggle" title="Toggle between R4 Counter-Steer Latch Drift and Hold-Space Drift">🎯 DRIFT: R4 LATCH</button>
+            </div>
             <div class="slider-row">
                 <div class="slider-lbl"><span>Steer Angle (A/D)</span><span id="val-steer-angle">21°</span></div>
                 <input type="range" id="slider-steer-angle" min="0.15" max="0.65" step="0.02" value="0.36" />
             </div>
             <div class="slider-row">
-                <div class="slider-lbl"><span>Caster Self-Centering</span><span id="val-caster">11.0</span></div>
-                <input type="range" id="slider-caster" min="2.0" max="22.0" step="1.0" value="11.0" />
+                <div class="slider-lbl"><span>Caster Self-Centering</span><span id="val-caster">2.2</span></div>
+                <input type="range" id="slider-caster" min="0.0" max="8.0" step="0.2" value="2.2" />
             </div>
             <div class="slider-row">
-                <div class="slider-lbl"><span>Corner Centrifugal Push</span><span id="val-corner-push">22%</span></div>
-                <input type="range" id="slider-corner-push" min="0.0" max="0.50" step="0.02" value="0.22" />
+                <div class="slider-lbl"><span>Corner Centrifugal Push</span><span id="val-corner-push">82%</span></div>
+                <input type="range" id="slider-corner-push" min="0.0" max="1.20" step="0.02" value="0.82" />
             </div>
             <div class="slider-row">
                 <div class="slider-lbl"><span>R4 Drift Slip Angle</span><span id="val-drift-slip">33°</span></div>
@@ -367,8 +371,125 @@
         </div>
     </div>
 
+    <!-- Pillar 3.4: Pioneer Rekordbox Dual-Deck MP3 Analyzer & AI DJ Controller Replica -->
+    <div id="rekordbox-studio-panel" class="hidden hud-interactive">
+        <div class="rb-header">
+            <div class="rb-header-left">
+                <span class="rb-brand">rekordbox // RAVE RACER AI DJ REPLICA</span>
+                <span id="rb-status-msg">READY — DRAG &amp; DROP ANY .MP3 FILE ONTO WINDOW OR CLICK LOAD MP3</span>
+            </div>
+            <div class="rb-header-right">
+                <label class="rb-file-btn rb-folder-btn" title="Select an entire folder of songs (.mp3/.wav/.ogg/.flac) for Camelot Wheel & BPM DJ rotation">
+                    📁 LOAD SONG FOLDER
+                    <input type="file" id="input-mp3-folder" webkitdirectory directory multiple accept="audio/*,.mp3,.wav,.ogg,.flac,.m4a" hidden />
+                </label>
+                <button class="mini-dev-btn active" id="btn-rb-source-mode" title="Switch between Dual-Deck Rekordbox MP3 Analyzer and Procedural 5-Stem Synth">💿 SOURCE: REKORDBOX DECKS</button>
+                <button class="mini-dev-btn active" id="btn-rb-aidj-toggle" title="Let AI DJ Kinetix automatically manipulate EQs, Filters, Entry/Exit Loops, and Camelot Crossfades">🤖 AI DJ AUTO-MIX: ON</button>
+                <button class="mini-dev-btn" id="btn-rb-auto-transition" title="Trigger a beat-matched Camelot crossfade & bass-swap between Deck 1 and Deck 2">🔀 CAMELOT TRANSITION</button>
+                <button class="mini-dev-btn" id="btn-close-rekordbox">✕ HIDE (K)</button>
+            </div>
+        </div>
+
+        <!-- Dual-Deck Parallel RGB Waveforms, Beatgrids, CDJ Platters & Mixer Canvas -->
+        <canvas id="rekordbox-canvas" width="840" height="224"></canvas>
+
+        <!-- Dual-Deck Hardware Controls Strip (Deck 1 | Center Crossfader | Deck 2) -->
+        <div class="rb-controls-grid">
+            <!-- DECK 1 CONTROLS (CYAN) -->
+            <div class="rb-deck-box rb-deck-1">
+                <div class="rb-deck-top-row">
+                    <strong style="color:#00f5d4;">DECK 1</strong>
+                    <label class="rb-file-btn">
+                        📂 LOAD MP3
+                        <input type="file" id="input-mp3-deck1" accept="audio/*,.mp3,.wav,.ogg,.flac,.m4a" hidden />
+                    </label>
+                    <button class="rb-sm-btn" id="btn-d1-play">▶/⏸</button>
+                    <button class="rb-sm-btn" id="btn-d1-sync">SYNC</button>
+                    <button class="rb-sm-btn" id="btn-d1-master">MASTER</button>
+                    <button class="rb-sm-btn" id="btn-d1-export" title="Export analyzed Beatgrid, BPM & RGB Waveform to JSON">💾 JSON</button>
+                </div>
+                <div class="rb-pad-row">
+                    <span class="rb-pad-lbl">HOT CUES:</span>
+                    <button class="rb-cue-btn cue-a" data-deck="1" data-cue="0">A</button>
+                    <button class="rb-cue-btn cue-b" data-deck="1" data-cue="1">B</button>
+                    <button class="rb-cue-btn cue-c" data-deck="1" data-cue="2">C</button>
+                    <button class="rb-cue-btn cue-d" data-deck="1" data-cue="3">D</button>
+                    <span class="rb-pad-lbl" style="margin-left:6px;">LOOP:</span>
+                    <button class="rb-loop-btn" data-deck="1" data-loop="0.25">1/4</button>
+                    <button class="rb-loop-btn" data-deck="1" data-loop="0.5">1/2</button>
+                    <button class="rb-loop-btn" data-deck="1" data-loop="1">1</button>
+                    <button class="rb-loop-btn" data-deck="1" data-loop="2">2</button>
+                    <button class="rb-loop-btn" data-deck="1" data-loop="4">4</button>
+                    <button class="rb-loop-btn" data-deck="1" data-loop="0">EXIT</button>
+                </div>
+                <div class="rb-eq-row">
+                    <label>LOW <input type="range" id="slider-d1-low" min="-1" max="1" step="0.05" value="0" /></label>
+                    <label>MID <input type="range" id="slider-d1-mid" min="-1" max="1" step="0.05" value="0" /></label>
+                    <label>HI <input type="range" id="slider-d1-hi" min="-1" max="1" step="0.05" value="0" /></label>
+                    <label>FLTR <input type="range" id="slider-d1-fltr" min="-1" max="1" step="0.05" value="0" /></label>
+                </div>
+            </div>
+
+            <!-- CENTER MIXER CROSSFADER -->
+            <div class="rb-mixer-center">
+                <div class="rb-xfade-lbl">CROSSFADER (D1 ↔ D2)</div>
+                <input type="range" id="slider-rb-crossfader" min="-1" max="1" step="0.02" value="-0.92" />
+                <div class="rb-xfade-ends">
+                    <span style="color:#00f5d4;">◀ DECK 1</span>
+                    <span style="color:#ff1e6b;">DECK 2 ▶</span>
+                </div>
+                <div class="rb-drop-hint">DROP .MP3 LEFT = D1 | RIGHT = D2</div>
+            </div>
+
+            <!-- DECK 2 CONTROLS (MAGENTA) -->
+            <div class="rb-deck-box rb-deck-2">
+                <div class="rb-deck-top-row">
+                    <strong style="color:#ff1e6b;">DECK 2</strong>
+                    <label class="rb-file-btn rb-file-btn-2">
+                        📂 LOAD MP3
+                        <input type="file" id="input-mp3-deck2" accept="audio/*,.mp3,.wav,.ogg,.flac,.m4a" hidden />
+                    </label>
+                    <button class="rb-sm-btn" id="btn-d2-play">▶/⏸</button>
+                    <button class="rb-sm-btn" id="btn-d2-sync">SYNC</button>
+                    <button class="rb-sm-btn" id="btn-d2-master">MASTER</button>
+                    <button class="rb-sm-btn" id="btn-d2-export" title="Export analyzed Beatgrid, BPM & RGB Waveform to JSON">💾 JSON</button>
+                </div>
+                <div class="rb-pad-row">
+                    <span class="rb-pad-lbl">HOT CUES:</span>
+                    <button class="rb-cue-btn cue-a" data-deck="2" data-cue="0">A</button>
+                    <button class="rb-cue-btn cue-b" data-deck="2" data-cue="1">B</button>
+                    <button class="rb-cue-btn cue-c" data-deck="2" data-cue="2">C</button>
+                    <button class="rb-cue-btn cue-d" data-deck="2" data-cue="3">D</button>
+                    <span class="rb-pad-lbl" style="margin-left:6px;">LOOP:</span>
+                    <button class="rb-loop-btn" data-deck="2" data-loop="0.25">1/4</button>
+                    <button class="rb-loop-btn" data-deck="2" data-loop="0.5">1/2</button>
+                    <button class="rb-loop-btn" data-deck="2" data-loop="1">1</button>
+                    <button class="rb-loop-btn" data-deck="2" data-loop="2">2</button>
+                    <button class="rb-loop-btn" data-deck="2" data-loop="4">4</button>
+                    <button class="rb-loop-btn" data-deck="2" data-loop="0">EXIT</button>
+                </div>
+                <div class="rb-eq-row">
+                    <label>LOW <input type="range" id="slider-d2-low" min="-1" max="1" step="0.05" value="0" /></label>
+                    <label>MID <input type="range" id="slider-d2-mid" min="-1" max="1" step="0.05" value="0" /></label>
+                    <label>HI <input type="range" id="slider-d2-hi" min="-1" max="1" step="0.05" value="0" /></label>
+                    <label>FLTR <input type="range" id="slider-d2-fltr" min="-1" max="1" step="0.05" value="0" /></label>
+                </div>
+            </div>
+        </div>
+
+        <!-- Rekordbox Folder Crate & Camelot Harmonic Rotation Queue -->
+        <div class="rb-crate-panel">
+            <div class="rb-crate-header">
+                <span>🗂️ REKORDBOX FOLDER CRATE // CAMELOT WHEEL &amp; BPM AUTO-ROTATION (INTRO/OUTRO 3-PHRASE LOOPS ONLY)</span>
+                <span id="rb-crate-count">4 TRACKS IN CRATE</span>
+            </div>
+            <div id="rb-crate-list" class="rb-crate-list"></div>
+        </div>
+    </div>
+
     <!-- Modular Scripts -->
     <script src="js/vibe-palettes.js"></script>
+    <script src="js/rekordbox-dj.js"></script>
     <script src="js/audio-engine.js"></script>
     <script src="js/dj-jumbotron.js"></script>
     <script src="js/track-spline.js"></script>

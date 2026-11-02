@@ -11,11 +11,12 @@ RRR.PHYSICS_TUNING = {
     accelHigh: 42.0,             // High-speed pull
     brakeDecel: 64.0,            // Braking power
     coastDrag: 16.0,             // Rolling/aero drag when W released
-    maxSteerAngle: 0.36,         // Max steering heading offset in GRIP (radians ~21 deg)
-    maxDriftSteerAngle: 0.48,    // Max steering heading offset in DRIFT (radians ~27.5 deg)
-    casterSelfCenter: 11.0,      // Speed at which headingOffset self-centers when A/D released
-    cornerCentrifugalPush: 0.22, // Outward corner push on curves (set to 0.0 to disable completely!)
+    maxSteerAngle: 0.36,         // Steering authority reference in GRIP (radians ~21 deg)
+    maxDriftSteerAngle: 0.48,    // Steering authority reference in DRIFT (radians ~27.5 deg)
+    casterSelfCenter: 2.2,       // Gentle progressive self-alignment rate when A/D released (rad/s per rad)
+    cornerCentrifugalPush: 0.82, // True curvature demand scalar (0.82 = natural momentum tangent on curves)
     driftSlipMax: 0.58,          // Visual chassis drift yaw angle (~33 deg)
+    latchDrift: true,            // True = R4 Latch-Drift (exit via counter-steer), False = Hold Space to drift
     stationaryTurntable: false   // When true in Car Lab, car revs/steers/drifts in place on the turntable!
 };
 
@@ -35,6 +36,7 @@ RRR.ArcadeVehicle = class ArcadeVehicle {
         this.splineT = config.startT || 0.0;
         this.lateralOffset = config.startLateral || 0.0;
         this.headingOffset = 0.0;
+        this.yawRate = 0.0;             // Angular turning rate in road plane (rad/s)
         this.lateralVelocity = 0.0;
         this.knockbackLatVel = 0.0;
         this.lap = 1;
@@ -54,20 +56,34 @@ RRR.ArcadeVehicle = class ArcadeVehicle {
         this.visualRight = [-1, 0, 0];
         this.visualUp = [0, 1, 0];
 
-        // Visual Chassis Rig
+        // Visual Chassis Rig & 2nd-Order Spring-Damper Suspension Velocities
         this.visualSlipAngle = 0.0;     // Radians (+ = nose kicked Right, - = nose kicked Left)
         this.visualRoll = 0.0;
         this.visualPitch = 0.0;
+        this.rollVel = 0.0;
+        this.pitchVel = 0.0;
         this.wheelSpin = 0.0;
         this.steerSmoothed = 0.0;
 
-        // Speed & R4 Drift State Machine ('GRIP' | 'DRIFTING')
+        // 6-Speed Arcade Gearbox & Tachometer State
+        this.gear = 1;                  // 1..6
+        this.rpm = 1200;                // 1200..9500 RPM
+        this.shiftTimer = 0.0;          // 65ms upshift impulse timer
+
+        // Speed & 4-Stage R4 Drift State Machine ('GRIP' | 'INITIATING' | 'DRIFTING' | 'RECOVERY')
         this.speed = config.startSpeed !== undefined ? config.startSpeed : 0.0;
         this.maxBaseSpeed = RRR.PHYSICS_TUNING.maxBaseSpeed;
         this.normalizedSpeed = 0.0;
         this.driftState = 'GRIP';
+        this.driftStateTimer = 0.0;
         this.driftDirection = 0;        // -1 (Left) or +1 (Right)
         this.driftCharge = 0.0;
+        this.counterSteerHoldTimer = 0.0;
+        this.straightHoldTimer = 0.0;
+        this.throttleReleaseTimer = 99.0;
+        this.wasThrottleHeld = false;
+        this.throttleFlickTriggered = false;
+        this.boostTier = 0;             // 0 = None, 1 = Spark, 2 = Flame, 3 = Redline Overdrive
         this.boostTimer = 0.0;
         this.boostIntensity = 0.0;
         this.wallScrapeCooldown = 0.0;
@@ -101,9 +117,24 @@ RRR.ArcadeVehicle = class ArcadeVehicle {
         this.splineT = ((splineT % 1.0) + 1.0) % 1.0;
         this.lateralOffset = lateralOffset;
         this.headingOffset = 0.0;
+        this.yawRate = 0.0;
         this.visualSlipAngle = 0.0;
+        this.visualRoll = 0.0;
+        this.visualPitch = 0.0;
+        this.rollVel = 0.0;
+        this.pitchVel = 0.0;
         this.knockbackLatVel = 0.0;
         this.steerSmoothed = 0.0;
+        this.gear = 1;
+        this.rpm = 1200;
+        this.shiftTimer = 0.0;
+        this.driftState = 'GRIP';
+        this.driftStateTimer = 0.0;
+        this.driftDirection = 0;
+        this.driftCharge = 0.0;
+        this.counterSteerHoldTimer = 0.0;
+        this.straightHoldTimer = 0.0;
+        this.boostTier = 0;
 
         const s = trackSpline.getSampleAtNormalizedT(this.splineT);
         this.syncWorldTransform(s);
@@ -218,10 +249,36 @@ RRR.ArcadeVehicle = class ArcadeVehicle {
 
         const currSample = trackSpline.getSampleAtNormalizedT(this.splineT);
 
+        // Shared Track <-> Vehicle Interface Contract (with backwards-compatible fallbacks)
+        const curvatureRadPerM = currSample.curvatureRadPerMeter !== undefined
+            ? currSample.curvatureRadPerMeter
+            : (currSample.curvature / 40.0);
+        const roadHalfWidth = currSample.halfWidth !== undefined
+            ? currSample.halfWidth
+            : trackSpline.roadHalfWidth;
+        const roadPitch = currSample.pitch !== undefined
+            ? currSample.pitch
+            : Math.asin(Math.max(-1.0, Math.min(1.0, currSample.forward[1] || 0.0)));
+
         // Smooth steering input (-1 = Left / A, +1 = Right / D)
         this.steerSmoothed += (this.input.steer - this.steerSmoothed) * Math.min(1.0, dt * 15.0);
 
-        // 1. Top Speed & Acceleration
+        // Track On-Off-On Throttle Flick for classic Ridge Racer drift initiation
+        if (this.input.throttle > 0.5) {
+            if (!this.wasThrottleHeld && this.throttleReleaseTimer > 0.02 && this.throttleReleaseTimer < 0.28) {
+                this.throttleFlickTriggered = true;
+            } else {
+                this.throttleFlickTriggered = false;
+            }
+            this.wasThrottleHeld = true;
+            this.throttleReleaseTimer = 0.0;
+        } else {
+            this.wasThrottleHeld = false;
+            this.throttleReleaseTimer += dt;
+            this.throttleFlickTriggered = false;
+        }
+
+        // 1. Top Speed, 6-Speed Arcade Gearbox & Slope Gravity
         let topSpeed = this.maxBaseSpeed * (this.personality.baseSpeedScalar || 1.0);
 
         if (this.isBoiling) {
@@ -236,14 +293,47 @@ RRR.ArcadeVehicle = class ArcadeVehicle {
         if (this.boostTimer > 0) {
             this.boostTimer -= dt;
             this.boostIntensity = Math.min(1.0, this.boostTimer / 1.2);
-            topSpeed *= 1.24;
+            const boostMult = this.boostTier === 3 ? 1.27 : (this.boostTier === 2 ? 1.21 : (this.boostTier === 1 ? 1.15 : 1.24));
+            topSpeed *= boostMult;
         } else {
+            this.boostTier = 0;
             this.boostIntensity = Math.max(0.0, this.boostIntensity - dt * 3.0);
         }
 
+        // 6-Speed Arcade Gearbox (ratios across normalized speed)
+        const gearRatios = [0.18, 0.34, 0.50, 0.67, 0.84, 1.05];
+        const speedRatio = Math.max(0.0, Math.abs(this.speed) / this.maxBaseSpeed);
+        let targetGear = 6;
+        for (let g = 0; g < 6; g++) {
+            const threshold = (g + 1 === this.gear) ? gearRatios[g] * 0.98 : gearRatios[g] * 0.92;
+            if (speedRatio < threshold) {
+                targetGear = g + 1;
+                break;
+            }
+        }
+        if (targetGear > this.gear && this.shiftTimer <= 0) {
+            this.gear = targetGear;
+            this.shiftTimer = 0.065; // 65ms upshift impulse
+            this.pitchVel -= 0.22;   // Upshift chassis rock kick
+        } else if (targetGear < this.gear && this.shiftTimer <= 0 && this.driftState === 'GRIP') {
+            this.gear = targetGear;
+        }
+        if (this.shiftTimer > 0) {
+            this.shiftTimer = Math.max(0.0, this.shiftTimer - dt);
+        }
+
+        const prevRatio = this.gear > 1 ? gearRatios[this.gear - 2] * 0.72 : 0.0;
+        const currRatio = gearRatios[this.gear - 1];
+        const gearBandProgress = Math.max(0.0, Math.min(1.12, (speedRatio - prevRatio) / Math.max(0.05, currRatio - prevRatio)));
+        const targetRpm = 1200 + gearBandProgress * 7600 + (this.boostTimer > 0 ? 600 : 0) + (this.driftState === 'DRIFTING' ? 450 : 0);
+        this.rpm += (Math.min(9500, Math.max(1200, targetRpm)) - this.rpm) * Math.min(1.0, dt * 18.0);
+
+        // Powerband torque multiplier (peaks in mid-high RPM band, brief cut during 65ms upshift)
+        const powerbandTorque = this.shiftTimer > 0 ? 0.35 : (0.88 + 0.18 * Math.sin(Math.min(1.0, gearBandProgress) * Math.PI));
+
         if (this.input.throttle > 0) {
             const lowEndTorque = this.speed < 45.0 ? tune.accelLow : tune.accelHigh;
-            const accelRate = this.boostTimer > 0 ? (tune.accelLow * 1.25) : lowEndTorque;
+            const accelRate = (this.boostTimer > 0 ? (tune.accelLow * 1.25) : lowEndTorque) * powerbandTorque;
             this.speed += this.input.throttle * accelRate * dt;
         } else if (this.input.brake > 0) {
             if (this.speed > 1.0) {
@@ -259,68 +349,185 @@ RRR.ArcadeVehicle = class ArcadeVehicle {
             }
         }
 
+        // Uphill / Downhill slope gravity along 3D track pitch
+        if (!(this.isPlayer && tune.stationaryTurntable) && Math.abs(this.speed) > 0.5) {
+            this.speed += -Math.sin(roadPitch) * 15.0 * dt;
+        }
+
         this.speed = Math.max(-22.0, Math.min(topSpeed, this.speed));
         this.normalizedSpeed = Math.max(0.0, this.speed / this.maxBaseSpeed);
 
-        // 2. R4-Style Drift State Machine ('GRIP' -> 'DRIFTING')
-        const minDriftSpeed = this.maxBaseSpeed * 0.35;
+        // 2. 4-Stage R4 / OutRun 2 Drift State Machine ('GRIP' -> 'INITIATING' -> 'DRIFTING' -> 'RECOVERY')
+        const minDriftSpeed = this.maxBaseSpeed * 0.36;
         const effectiveSpeedForDrift = (this.isPlayer && tune.stationaryTurntable) ? Math.max(this.speed, 65.0) : this.speed;
+
         if (this.driftState === 'GRIP') {
-            if (this.input.drift && Math.abs(this.steerSmoothed) > 0.15 && effectiveSpeedForDrift > minDriftSpeed) {
-                this.driftState = 'DRIFTING';
+            const steerMag = Math.abs(this.steerSmoothed);
+            const triggerDrift = this.input.drift ||
+                (this.input.brake > 0.2 && this.input.throttle > 0) ||
+                (this.throttleFlickTriggered && steerMag > 0.45);
+
+            if (triggerDrift && steerMag > 0.20 && effectiveSpeedForDrift > minDriftSpeed) {
+                this.driftState = 'INITIATING';
                 this.driftDirection = Math.sign(this.steerSmoothed);
-                this.driftCharge = 0.08;
+                this.driftStateTimer = 0.12;
+                this.driftCharge = Math.max(this.driftCharge, 0.08);
+                this.counterSteerHoldTimer = 0.0;
+                this.straightHoldTimer = 0.0;
+                this.pitchVel += 0.45;
+                this.rollVel += this.driftDirection * 0.55;
+                if (this.gear > 2) this.gear--;
+                this.rpm = Math.min(9500, this.rpm + 1100);
+            }
+        } else if (this.driftState === 'INITIATING') {
+            this.driftStateTimer -= dt;
+            if (effectiveSpeedForDrift < minDriftSpeed * 0.70) {
+                this.driftState = 'GRIP';
+                this.driftDirection = 0;
+                this.driftCharge = 0.0;
+            } else if (this.driftStateTimer <= 0) {
+                this.driftState = 'DRIFTING';
+                this.counterSteerHoldTimer = 0.0;
+                this.straightHoldTimer = 0.0;
             }
         } else if (this.driftState === 'DRIFTING') {
-            if (!this.input.drift || effectiveSpeedForDrift < minDriftSpeed * 0.75) {
-                const sweetSpotThreshold = this.isUntouchable ? 0.35 : 0.45;
-                if (this.driftCharge >= sweetSpotThreshold) {
-                    const boostDur = (1.35 + this.driftCharge * 0.65) * (this.isUntouchable ? 1.20 : 1.0);
-                    this.boostTimer = boostDur;
-                    this.boostIntensity = 1.0;
-                    this.speed = Math.min(this.maxBaseSpeed * 1.24, this.speed + 20.0);
-                    if (callbacks && callbacks.onDriftBoost) {
-                        callbacks.onDriftBoost(this, this.driftCharge);
-                    }
-                }
-                this.driftState = 'GRIP';
-                this.driftCharge = 0.0;
-                this.driftDirection = 0;
+            const inwardSteer = Math.max(0.0, this.steerSmoothed * this.driftDirection);
+            const counterSteer = Math.max(0.0, -this.steerSmoothed * this.driftDirection);
+
+            // OutRun 2 / R4 Tire Scrub: steering inward tightens line & scrubs speed; counter-steering holds 100% momentum!
+            const scrubDrag = inwardSteer * (1.0 - counterSteer) * 4.5;
+            if (this.speed > minDriftSpeed * 0.80 && !(this.isPlayer && tune.stationaryTurntable)) {
+                this.speed = Math.max(0.0, this.speed - scrubDrag * dt);
+            }
+
+            // Charge accumulation (inward steer charges up to 1.35x faster)
+            const normSpd = Math.max(0.5, this.normalizedSpeed);
+            const chargeRate = (0.55 + inwardSteer * 0.20 * 3.7 - counterSteer * 0.15) * normSpd;
+            this.driftCharge = Math.min(1.25, this.driftCharge + chargeRate * dt * 0.62);
+            this.addEmotion(-5.0 * dt, 15.0 * dt, 'CLEAN_DRIFT');
+
+            // Track counter-steer hold & straightaway alignment timers for R4 Latch-Drift exit
+            if (counterSteer > 0.48) {
+                this.counterSteerHoldTimer += dt;
             } else {
-                const slipIntensity = 0.6 + Math.abs(this.steerSmoothed) * 0.4;
-                const normSpd = Math.max(0.5, this.normalizedSpeed);
-                this.driftCharge = Math.min(1.25, this.driftCharge + slipIntensity * normSpd * dt * 0.62);
-                this.addEmotion(-5.0 * dt, 15.0 * dt, 'CLEAN_DRIFT');
+                this.counterSteerHoldTimer = Math.max(0.0, this.counterSteerHoldTimer - dt * 2.0);
+            }
+
+            if (Math.abs(this.steerSmoothed) < 0.12 && Math.abs(curvatureRadPerM) < 0.0016 && !this.input.drift) {
+                this.straightHoldTimer += dt;
+            } else {
+                this.straightHoldTimer = 0.0;
+            }
+
+            const useLatchMode = tune.latchDrift && this.isPlayer && !tune.stationaryTurntable;
+            const shouldExitDrift = useLatchMode
+                ? (this.counterSteerHoldTimer >= 0.16 ||
+                   this.straightHoldTimer >= 0.24 ||
+                   effectiveSpeedForDrift < minDriftSpeed * 0.72 ||
+                   (this.input.brake > 0.8 && this.input.throttle === 0))
+                : (!this.input.drift || effectiveSpeedForDrift < minDriftSpeed * 0.72);
+
+            if (shouldExitDrift) {
+                this.driftState = 'RECOVERY';
+                this.driftStateTimer = 0.16;
+                this.pitchVel -= 0.40; // Rear squat kick as tires bite asphalt
+
+                const sweetSpotThreshold = this.isUntouchable ? 0.30 : 0.38;
+                const egoBonus = this.isUntouchable ? 1.20 : 1.0;
+
+                if (this.driftCharge >= 0.95) {
+                    this.boostTier = 3;
+                    this.boostTimer = 2.1 * egoBonus;
+                    this.boostIntensity = 1.0;
+                    this.speed = Math.min(this.maxBaseSpeed * 1.27, this.speed + 24.0);
+                } else if (this.driftCharge >= 0.65) {
+                    this.boostTier = 2;
+                    this.boostTimer = 1.65 * egoBonus;
+                    this.boostIntensity = 1.0;
+                    this.speed = Math.min(this.maxBaseSpeed * 1.21, this.speed + 18.0);
+                } else if (this.driftCharge >= sweetSpotThreshold) {
+                    this.boostTier = 1;
+                    this.boostTimer = 1.25 * egoBonus;
+                    this.boostIntensity = 1.0;
+                    this.speed = Math.min(this.maxBaseSpeed * 1.15, this.speed + 13.0);
+                }
+
+                if (this.driftCharge >= sweetSpotThreshold && callbacks && callbacks.onDriftBoost) {
+                    callbacks.onDriftBoost(this, this.driftCharge, this.boostTier);
+                }
+
+                this.driftCharge = 0.0;
+                this.counterSteerHoldTimer = 0.0;
+                this.straightHoldTimer = 0.0;
+            }
+        } else if (this.driftState === 'RECOVERY') {
+            this.driftStateTimer -= dt;
+            if (this.driftStateTimer <= 0) {
+                this.driftState = 'GRIP';
+                this.driftDirection = 0;
             }
         }
 
-        // 3. Steering & Self-Centering Heading Offset relative to Track Tangent
-        const maxSteerAngle = this.driftState === 'DRIFTING' ? tune.maxDriftSteerAngle : tune.maxSteerAngle;
-        const cornerPush = Math.abs(currSample.curvature) > 0.07
-            ? -currSample.curvature * this.normalizedSpeed * (this.driftState === 'DRIFTING' ? tune.cornerCentrifugalPush * 0.45 : tune.cornerCentrifugalPush)
-            : 0.0;
-        const targetHeadingOffset = this.steerSmoothed * maxSteerAngle + cornerPush;
-        this.headingOffset += (targetHeadingOffset - this.headingOffset) * Math.min(1.0, dt * tune.casterSelfCenter);
-
-        // 4. Advance Lateral & Forward Coordinates along the 3D Spline (unless locked on Turntable!)
-        if (!(this.isPlayer && tune.stationaryTurntable)) {
+        // 3. Angular Yaw-Rate Steering & True Curvature Demand (No Slot-Car Auto-Steer or Rubber-Band Snap!)
+        if (this.isPlayer && tune.stationaryTurntable) {
+            const targetTurntableHeading = this.steerSmoothed * (this.driftState === 'DRIFTING' ? tune.maxDriftSteerAngle : tune.maxSteerAngle);
+            this.headingOffset += (targetTurntableHeading - this.headingOffset) * Math.min(1.0, dt * 8.0);
+            this.yawRate = 0.0;
+        } else {
             const forwardSpeed = this.speed * Math.cos(this.headingOffset);
+            const ds = forwardSpeed * dt;
+            const steerAuthorityScale = tune.maxSteerAngle / 0.36;
+
+            // Road curvature demand & banking assist
+            const bankAssist = Math.sin(currSample.bank || 0) * 0.0022 * ds;
+            const roadYawDemand = (curvatureRadPerM * ds * tune.cornerCentrifugalPush) - bankAssist;
+
+            if (this.driftState === 'DRIFTING' || this.driftState === 'INITIATING') {
+                const inwardSteer = Math.max(0.0, this.steerSmoothed * this.driftDirection);
+                const counterSteer = Math.max(0.0, -this.steerSmoothed * this.driftDirection);
+
+                // Base drift turning rate + rail-assisted curve sweep
+                const baseDriftTurnRate = this.driftDirection * (0.42 + inwardSteer * 0.52 - counterSteer * 0.38) * steerAuthorityScale;
+                const sameWayCurve = (Math.sign(curvatureRadPerM) === this.driftDirection)
+                    ? Math.abs(curvatureRadPerM) * Math.max(0.0, forwardSpeed) * (0.58 + inwardSteer * 0.32 - counterSteer * 0.26)
+                    : 0.0;
+                const targetDriftYawRate = baseDriftTurnRate + this.driftDirection * sameWayCurve;
+                this.yawRate += (targetDriftYawRate - this.yawRate) * Math.min(1.0, dt * 14.0);
+            } else {
+                if (Math.abs(this.input.steer) > 0.05) {
+                    const highSpeedBlend = Math.max(0.0, Math.min(1.0, (this.normalizedSpeed - 0.45) / 0.55));
+                    const omegaGrip = (0.95 + (0.68 - 0.95) * highSpeedBlend) * steerAuthorityScale;
+                    const targetYawRate = this.steerSmoothed * omegaGrip;
+                    this.yawRate += (targetYawRate - this.yawRate) * Math.min(1.0, dt * 16.0);
+                } else {
+                    // Progressive caster self-alignment rate (holds lane-change diagonals smoothly without rubber-band snap)
+                    const casterRate = -this.headingOffset * tune.casterSelfCenter;
+                    this.yawRate += (casterRate - this.yawRate) * Math.min(1.0, dt * 10.0);
+                }
+            }
+
+            this.headingOffset += this.yawRate * dt - roadYawDemand;
+            this.headingOffset = Math.max(-0.85, Math.min(0.85, this.headingOffset));
+
+            // 4. Advance Lateral & Forward Coordinates along the 3D Spline
             this.lateralVelocity = this.speed * Math.sin(this.headingOffset) + this.knockbackLatVel;
             this.lateralOffset += this.lateralVelocity * dt;
             this.knockbackLatVel *= Math.max(0.0, 1.0 - dt * 7.0);
 
-            // 5. Guardrail Boundary Check
-            const maxLat = trackSpline.roadHalfWidth - 1.35;
+            // 5. Tangential Wall-Graze Boundary Check (Momentum-Preserving)
+            const maxLat = roadHalfWidth - 1.35;
             if (Math.abs(this.lateralOffset) > maxLat) {
                 const wallSide = Math.sign(this.lateralOffset);
                 this.lateralOffset = wallSide * maxLat;
-                this.knockbackLatVel = -wallSide * 2.5;
+                this.knockbackLatVel = -wallSide * 2.2;
 
                 if ((wallSide > 0 && this.headingOffset > 0) || (wallSide < 0 && this.headingOffset < 0)) {
-                    this.headingOffset *= Math.max(0.0, 1.0 - dt * 15.0);
+                    this.headingOffset *= Math.max(0.0, 1.0 - dt * 18.0);
+                    this.yawRate *= Math.max(0.0, 1.0 - dt * 18.0);
                 }
 
-                this.speed *= (1.0 - 0.08 * dt);
+                const impactAngleFactor = Math.abs(Math.sin(this.headingOffset));
+                this.speed *= Math.max(0.0, 1.0 - impactAngleFactor * 0.22 * dt);
 
                 if (this.wallScrapeCooldown <= 0 && this.speed > 40) {
                     this.wallScrapeCooldown = 0.75;
@@ -331,7 +538,6 @@ RRR.ArcadeVehicle = class ArcadeVehicle {
                 }
             }
 
-            const ds = forwardSpeed * dt;
             const dT = ds / trackSpline.totalLength;
             const prevT = this.splineT;
             this.splineT = ((this.splineT + dT) % 1.0 + 1.0) % 1.0;
@@ -347,22 +553,48 @@ RRR.ArcadeVehicle = class ArcadeVehicle {
             this.totalProgress = (this.lap - 1) + this.splineT;
         }
 
-        // 6. Visual Chassis Slip Angle, Roll & Pitch
+        // 6. Visual Chassis Slip Angle & 2nd-Order Underdamped Spring-Damper Suspension (Pitch & Roll)
         let targetSlip = 0.0;
-        if (this.driftState === 'DRIFTING') {
-            targetSlip = this.driftDirection * (tune.driftSlipMax * 0.65 + Math.abs(this.steerSmoothed) * (tune.driftSlipMax * 0.35) + this.driftCharge * 0.08);
+        let slipBlendRate = 10.0;
+        if (this.driftState === 'INITIATING') {
+            targetSlip = this.driftDirection * tune.driftSlipMax * 0.75;
+            slipBlendRate = 18.0;
+        } else if (this.driftState === 'DRIFTING') {
+            const inwardSteer = Math.max(0.0, this.steerSmoothed * this.driftDirection);
+            const counterSteer = Math.max(0.0, -this.steerSmoothed * this.driftDirection);
+            targetSlip = this.driftDirection * (tune.driftSlipMax * (0.72 + inwardSteer * 0.43 - counterSteer * 0.32) + this.driftCharge * 0.06);
+            slipBlendRate = 12.0;
+        } else if (this.driftState === 'RECOVERY') {
+            targetSlip = 0.0;
+            slipBlendRate = 18.0;
         } else {
             const spdFactor = (this.isPlayer && tune.stationaryTurntable) ? 1.0 : Math.min(1.0, Math.abs(this.speed) / 20.0);
             targetSlip = this.steerSmoothed * 0.06 * spdFactor;
+            slipBlendRate = 10.0;
         }
-        this.visualSlipAngle += (targetSlip - this.visualSlipAngle) * Math.min(1.0, dt * 10.0);
+        this.visualSlipAngle += (targetSlip - this.visualSlipAngle) * Math.min(1.0, dt * slipBlendRate);
 
         const rollSpdFactor = (this.isPlayer && tune.stationaryTurntable) ? 1.0 : Math.min(1.0, Math.abs(this.speed) / 30.0);
-        const targetRoll = this.steerSmoothed * 0.08 * rollSpdFactor;
-        this.visualRoll += (targetRoll - this.visualRoll) * Math.min(1.0, dt * 9.0);
+        const driftRollBonus = (this.driftState === 'DRIFTING' || this.driftState === 'INITIATING') ? this.driftDirection * 0.045 : 0.0;
+        const targetRoll = this.steerSmoothed * 0.08 * rollSpdFactor + driftRollBonus;
 
-        const targetPitch = this.boostTimer > 0 ? -0.045 : (this.input.brake > 0 ? 0.04 : -this.input.throttle * 0.02);
-        this.visualPitch += (targetPitch - this.visualPitch) * Math.min(1.0, dt * 8.0);
+        const boostSquat = this.boostTimer > 0 ? -0.052 : 0.0;
+        const accelPitch = this.input.brake > 0 ? 0.042 : -this.input.throttle * 0.022;
+        const shiftPitch = this.shiftTimer > 0 ? 0.018 : 0.0;
+        const targetPitch = boostSquat + accelPitch + shiftPitch;
+
+        const springK = 72.0;
+        const springDamp = 11.0;
+        const physDt = Math.min(dt, 0.033);
+
+        this.rollVel += ((targetRoll - this.visualRoll) * springK - this.rollVel * springDamp) * physDt;
+        this.visualRoll += this.rollVel * physDt;
+        this.visualRoll = Math.max(-0.22, Math.min(0.22, this.visualRoll));
+
+        this.pitchVel += ((targetPitch - this.visualPitch) * springK - this.pitchVel * springDamp) * physDt;
+        this.visualPitch += this.pitchVel * physDt;
+        this.visualPitch = Math.max(-0.14, Math.min(0.14, this.visualPitch));
+
         this.wheelSpin += this.speed * dt * 1.8;
 
         // 7. Compute Exact 3D World Position & Orthonormal Basis Vectors
@@ -379,6 +611,8 @@ RRR.ArcadeVehicle = class ArcadeVehicle {
         this.aiDecisionTimer -= dt;
         const lookAheadT = (this.splineT + 0.025) % 1.0;
         const lookSample = trackSpline.getSampleAtNormalizedT(lookAheadT);
+        const roadHalfWidth = lookSample.halfWidth !== undefined ? lookSample.halfWidth : trackSpline.roadHalfWidth;
+        const safeAiHalfWidth = Math.max(4.5, roadHalfWidth - 3.5);
 
         const progressDiff = playerCar.totalProgress - this.totalProgress;
         let rubberBand = 1.0;
@@ -398,7 +632,7 @@ RRR.ArcadeVehicle = class ArcadeVehicle {
             const apexOffset = Math.abs(lookSample.curvature) > 0.08
                 ? apexSign * (this.isUntouchable ? 4.5 : 6.5)
                 : (Math.random() - 0.5) * 9.0;
-            this.aiTargetLateral = Math.max(-8.5, Math.min(8.5, apexOffset));
+            this.aiTargetLateral = Math.max(-safeAiHalfWidth, Math.min(safeAiHalfWidth, apexOffset));
         }
 
         for (const other of allVehicles) {
@@ -409,9 +643,10 @@ RRR.ArcadeVehicle = class ArcadeVehicle {
                 this.aiTargetLateral += Math.sign(dLat || 1) * 3.5;
             }
         }
+        this.aiTargetLateral = Math.max(-safeAiHalfWidth, Math.min(safeAiHalfWidth, this.aiTargetLateral));
 
         const latError = this.aiTargetLateral - this.lateralOffset;
-        this.input.steer = Math.max(-1.0, Math.min(1.0, latError * 0.22 + lookSample.curvature * 1.1));
+        this.input.steer = Math.max(-1.0, Math.min(1.0, latError * 0.18 - this.headingOffset * 1.8 + lookSample.curvature * 1.25));
         this.input.throttle = 1.0;
         this.input.brake = 0.0;
 

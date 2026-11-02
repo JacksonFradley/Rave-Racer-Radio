@@ -6,21 +6,18 @@ window.RRR = window.RRR || {};
 
 RRR.GameApp = class GameApp {
     constructor() {
-        // Default to Straightaway Drag Runway so initial driving troubleshooting is super clean
-        this.trackSpline = new RRR.TrackSpline('straight_drag');
-        this.vibeController = new RRR.VibeController();
-        this.audioEngine = new RRR.AudioEngine();
-        this.djController = new RRR.TrackDJController();
+        // Engine & Session Lifecycle Flags (Lazy-loaded only after a race or demo is selected)
+        this.isEngineInitialized = false;
+        this.hasActiveSession = false;
+        this.isLoopRunning = false;
 
+        this.trackSpline = null;
+        this.vibeController = null;
+        this.audioEngine = null;
+        this.djController = null;
         this.glCanvas = document.getElementById('gl-canvas');
-        this.renderer = new RRR.WebGLRenderer(this.glCanvas, this.trackSpline);
-
-        // HUD & Expression Elements
-        this.expressionHUD = new RRR.ExpressionHUD(
-            document.getElementById('char-box-strip'),
-            document.getElementById('banter-stage'),
-            document.getElementById('impact-vfx-canvas')
-        );
+        this.renderer = null;
+        this.expressionHUD = null;
 
         // Mirror DJ Broadcast Canvas to HUD Boiler Room Monitor
         this.djHudCanvas = document.getElementById('dj-hud-canvas');
@@ -40,12 +37,14 @@ RRR.GameApp = class GameApp {
 
         // Developer Sandbox Flags
         this.aiRivalsEnabled = true;
-        this.activeLabName = 'TRACK 01 // STRAIGHTAWAY';
+        this.activeLabName = 'SELECT A TRACK OR LAB';
         this.isOrbitDragging = false;
         this.lastPointer = [0, 0];
 
-        // Vehicles (Player + 3 Personality AI Rivals)
-        this.initVehicles();
+        this.playerCar = null;
+        this.rivals = [];
+        this.vehicles = [];
+        this.hasRaceStarted = false;
 
         // Game Flow State: 'DEV_MENU' | 'RACING' | 'WORLD_MAP' | 'LANDMARK_LOADING'
         this.mode = 'DEV_MENU';
@@ -59,6 +58,42 @@ RRR.GameApp = class GameApp {
             scrollX: 0
         };
 
+        this.bindMenuEvents();
+        this.buildWorldMapUI();
+    }
+
+    /**
+     * Lazily initializes the 3D WebGL renderer, track spline, vehicles, audio engine,
+     * and HUD only after the user explicitly selects a race or developer demo.
+     */
+    ensureEngineInitialized(initialPresetKey = 'straight_drag') {
+        if (this.isEngineInitialized) return false;
+        this.isEngineInitialized = true;
+
+        // Reveal in-game canvases and HUD containers
+        if (this.glCanvas) this.glCanvas.classList.remove('hidden');
+        const impactCanvas = document.getElementById('impact-vfx-canvas');
+        if (impactCanvas) impactCanvas.classList.remove('hidden');
+        const hudRoot = document.getElementById('hud-root');
+        if (hudRoot) hudRoot.classList.remove('hidden');
+        const tuningDrawer = document.getElementById('tuning-drawer');
+        if (tuningDrawer) tuningDrawer.classList.remove('hidden');
+
+        this.trackSpline = new RRR.TrackSpline(initialPresetKey);
+        this.vibeController = new RRR.VibeController();
+        this.audioEngine = new RRR.AudioEngine();
+        this.djController = new RRR.TrackDJController();
+        this.renderer = new RRR.WebGLRenderer(this.glCanvas, this.trackSpline);
+
+        this.expressionHUD = new RRR.ExpressionHUD(
+            document.getElementById('char-box-strip'),
+            document.getElementById('banter-stage'),
+            impactCanvas
+        );
+
+        // Vehicles (Player + 3 Personality AI Rivals)
+        this.initVehicles();
+
         // Wire Audio Markers -> Track DJ State Machine
         this.audioEngine.onMarkerCallback = (section) => {
             this.djController.onSongMarker(section);
@@ -67,10 +102,15 @@ RRR.GameApp = class GameApp {
             this.triggerBeatHaptics(0.28);
         };
 
-        this.bindEvents();
-        this.buildWorldMapUI();
+        this.bindGameEvents();
         this.updateLUTPreview();
+        this.startLoop();
+        return true;
+    }
 
+    startLoop() {
+        if (this.isLoopRunning) return;
+        this.isLoopRunning = true;
         this.lastTime = performance.now();
         requestAnimationFrame((t) => this.loop(t));
     }
@@ -145,6 +185,30 @@ RRR.GameApp = class GameApp {
      * Developer Starting Menu Mode Launcher
      */
     launchDevMode(modeKey) {
+        if (modeKey === 'lab_world_map') {
+            this.toggleDevMenu(false, true);
+            this.toggleWorldMapModal(true);
+            this.activeLabName = 'LAB 05 // WORLD MAP';
+            return;
+        }
+
+        const presetByMode = {
+            track_straight: 'straight_drag',
+            track_skidpad: 'drift_skidpad',
+            track_elevation: 'elevation_bank',
+            track_full_race: 'nagai_bayshore',
+            lab_car_mechanics: 'straight_drag',
+            lab_shaders_vibe: 'nagai_bayshore',
+            lab_combat_boxes: 'straight_drag',
+            lab_dj_audio: 'straight_drag'
+        };
+        const targetPreset = presetByMode[modeKey] || 'straight_drag';
+        const justInitialized = this.ensureEngineInitialized(targetPreset);
+
+        this.hasActiveSession = true;
+        const btnResume = document.getElementById('btn-resume-from-menu');
+        if (btnResume) btnResume.classList.remove('hidden');
+
         this.audioEngine.init();
         const badge = document.getElementById('audio-status-btn');
         if (badge) badge.textContent = this.audioEngine.isMuted ? '🔇 AUDIO MUTED' : '🔊 138 BPM AUDIO';
@@ -155,28 +219,29 @@ RRR.GameApp = class GameApp {
         this.renderer.showDebugVectors = false;
         this.renderer.debugBufferMode = 0;
         this.autoPilot = false;
-        this.updateControlButtonStates();
+        this.toggleRekordboxPanel(false);
+
+        if (!justInitialized || this.trackSpline.activePresetKey !== targetPreset) {
+            this.switchTrackPreset(targetPreset);
+        } else {
+            this.resetPlayerAndRivals();
+        }
 
         if (modeKey === 'track_straight') {
-            this.switchTrackPreset('straight_drag');
             this.aiRivalsEnabled = false;
             this.renderer.showDebugVectors = true;
             this.activeLabName = 'TRACK 01 // STRAIGHTAWAY';
         } else if (modeKey === 'track_skidpad') {
-            this.switchTrackPreset('drift_skidpad');
             this.aiRivalsEnabled = false;
             this.renderer.showDebugVectors = true;
             this.activeLabName = 'TRACK 02 // DRIFT SKIDPAD';
         } else if (modeKey === 'track_elevation') {
-            this.switchTrackPreset('elevation_bank');
             this.aiRivalsEnabled = false;
             this.activeLabName = 'TRACK 03 // 3D ELEVATION';
         } else if (modeKey === 'track_full_race') {
-            this.switchTrackPreset('nagai_bayshore');
             this.aiRivalsEnabled = true;
             this.activeLabName = 'TRACK 04 // FULL RACE';
         } else if (modeKey === 'lab_car_mechanics') {
-            this.switchTrackPreset('straight_drag');
             this.aiRivalsEnabled = false;
             this.renderer.cameraMode = 'ORBIT_CAR';
             this.renderer.orbitYaw = 0.55;
@@ -186,31 +251,24 @@ RRR.GameApp = class GameApp {
             RRR.PHYSICS_TUNING.stationaryTurntable = true;
             this.activeLabName = 'LAB 01 // CAR TURNTABLE';
         } else if (modeKey === 'lab_shaders_vibe') {
-            this.switchTrackPreset('nagai_bayshore');
             this.aiRivalsEnabled = true;
             this.autoPilot = true; // Auto-cruise at high speed so Paint Smudge & Vibe LUT are immediately active
             this.activeLabName = 'LAB 02 // SHADER STUDIO';
             document.getElementById('tuning-drawer').classList.remove('collapsed');
         } else if (modeKey === 'lab_combat_boxes') {
-            this.switchTrackPreset('straight_drag');
             this.aiRivalsEnabled = true;
             this.activeLabName = 'LAB 03 // COMBAT & BOXES';
             // Place Kai right next to player for immediate sideswipe testing
             this.rivals[0].placeOnTrack(this.trackSpline, 0.022, 3.2);
             setTimeout(() => this.triggerDemoBoxRam(), 250);
         } else if (modeKey === 'lab_dj_audio') {
-            this.switchTrackPreset('straight_drag');
             this.aiRivalsEnabled = false;
             // Park right in front of the first Jumbotron (at sample 0, t = 0.0)
             this.playerCar.placeOnTrack(this.trackSpline, 0.988, 0.0);
             this.renderer.cameraMode = 'JUMBOTRON_STAGE';
-            this.activeLabName = 'LAB 04 // DJ & 5-STEM SYNTH';
-            this.djController.triggerReaction('DROP_HYPE', 'BOILER ROOM STUDIO MODE', 4.0);
-        } else if (modeKey === 'lab_world_map') {
-            this.toggleDevMenu(false);
-            this.toggleWorldMapModal(true);
-            this.activeLabName = 'LAB 05 // WORLD MAP';
-            return;
+            this.activeLabName = 'LAB 04 // REKORDBOX AI DJ STUDIO';
+            this.djController.triggerReaction('DROP_HYPE', 'REKORDBOX BOILER ROOM STUDIO', 4.0);
+            this.toggleRekordboxPanel(true);
         }
 
         this.updateControlButtonStates();
@@ -238,12 +296,20 @@ RRR.GameApp = class GameApp {
         });
     }
 
-    toggleDevMenu(forceShow) {
+    toggleDevMenu(forceShow, allowWithoutSession = false) {
         const menuEl = document.getElementById('dev-start-menu');
         if (!menuEl) return;
         const show = forceShow !== undefined ? forceShow : menuEl.classList.contains('hidden');
+        if (!show && !this.hasActiveSession && !allowWithoutSession) {
+            return;
+        }
         menuEl.classList.toggle('hidden', !show);
-        this.mode = show ? 'DEV_MENU' : 'RACING';
+        if (show) {
+            this.keys = {};
+            this.mode = 'DEV_MENU';
+        } else if (this.hasActiveSession) {
+            this.mode = 'RACING';
+        }
     }
 
     cycleCameraMode() {
@@ -298,18 +364,19 @@ RRR.GameApp = class GameApp {
             btnAuto.textContent = this.autoPilot ? '🤖 AI CRUISE: ON (P)' : '🎮 AI CRUISE: OFF (P)';
         }
 
+        const btnLatch = document.getElementById('btn-latch-drift-toggle');
+        if (btnLatch) {
+            const ld = RRR.PHYSICS_TUNING.latchDrift;
+            btnLatch.textContent = ld ? '🎯 DRIFT: R4 LATCH' : '🎯 DRIFT: HOLD SPACE';
+            btnLatch.classList.toggle('active', ld);
+        }
+
         document.querySelectorAll('[data-buf-mode]').forEach((b) => {
             b.classList.toggle('active', parseInt(b.getAttribute('data-buf-mode'), 10) === this.renderer.debugBufferMode);
         });
     }
 
-    bindEvents() {
-        const unlockAudio = () => {
-            this.audioEngine.init();
-            const badge = document.getElementById('audio-status-btn');
-            if (badge) badge.textContent = this.audioEngine.isMuted ? '🔇 AUDIO MUTED' : '🔊 138 BPM AUDIO';
-        };
-
+    bindMenuEvents() {
         // Developer Menu Card Launchers
         document.querySelectorAll('[data-launch-mode]').forEach((card) => {
             card.addEventListener('click', () => {
@@ -318,7 +385,82 @@ RRR.GameApp = class GameApp {
         });
 
         const btnResume = document.getElementById('btn-resume-from-menu');
-        if (btnResume) btnResume.addEventListener('click', () => { unlockAudio(); this.toggleDevMenu(false); });
+        if (btnResume) {
+            btnResume.addEventListener('click', () => {
+                if (!this.hasActiveSession) return;
+                if (this.audioEngine) this.audioEngine.init();
+                this.toggleDevMenu(false);
+            });
+        }
+
+        const btnCloseMap = document.getElementById('btn-close-map');
+        if (btnCloseMap) btnCloseMap.addEventListener('click', () => this.toggleWorldMapModal(false));
+
+        window.addEventListener('keydown', (e) => {
+            if (e.code === 'Escape') {
+                if (this.mode === 'WORLD_MAP') {
+                    this.toggleWorldMapModal(false);
+                } else if (this.hasActiveSession) {
+                    this.toggleDevMenu();
+                }
+                return;
+            }
+
+            // Do not process driving inputs or in-race hotkeys while in menus or before a session is loaded
+            if (!this.hasActiveSession || this.mode !== 'RACING') return;
+
+            if (this.audioEngine) {
+                this.audioEngine.init();
+                const badge = document.getElementById('audio-status-btn');
+                if (badge) badge.textContent = this.audioEngine.isMuted ? '🔇 AUDIO MUTED' : '🔊 138 BPM AUDIO';
+            }
+
+            if (['Space', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(e.code)) {
+                e.preventDefault();
+            }
+            this.keys[e.code] = true;
+            if (e.key) this.keys[e.key.toLowerCase()] = true;
+
+            if (e.code === 'KeyR') {
+                this.resetPlayerAndRivals();
+            } else if (e.code === 'KeyV') {
+                this.cycleCameraMode();
+            } else if (e.code === 'KeyC') {
+                this.triggerDemoBoxRam();
+            } else if (e.code === 'KeyB') {
+                this.triggerManualBoost();
+            } else if (e.code === 'KeyZ') {
+                this.cycleTrackZone();
+            } else if (e.code === 'KeyP') {
+                this.toggleAutoPilot();
+            } else if (e.code === 'KeyK') {
+                this.toggleRekordboxPanel();
+            } else if (e.code === 'KeyM') {
+                this.toggleWorldMapModal();
+            } else if (e.code >= 'Digit1' && e.code <= 'Digit4') {
+                const keys = ['pacific_sunset', 'acid_warehouse', 'midnight_shibuya', 'cyber_flamingo'];
+                const idx = parseInt(e.code.replace('Digit', ''), 10) - 1;
+                this.selectVibe(keys[idx]);
+            }
+        });
+
+        window.addEventListener('keyup', (e) => {
+            this.keys[e.code] = false;
+            if (e.key) this.keys[e.key.toLowerCase()] = false;
+        });
+
+        window.addEventListener('blur', () => {
+            this.keys = {};
+        });
+    }
+
+    bindGameEvents() {
+        const unlockAudio = () => {
+            if (!this.audioEngine) return;
+            this.audioEngine.init();
+            const badge = document.getElementById('audio-status-btn');
+            if (badge) badge.textContent = this.audioEngine.isMuted ? '🔇 AUDIO MUTED' : '🔊 138 BPM AUDIO';
+        };
 
         const btnOpenDev = document.getElementById('btn-open-dev-menu');
         if (btnOpenDev) btnOpenDev.addEventListener('click', () => this.toggleDevMenu());
@@ -353,6 +495,14 @@ RRR.GameApp = class GameApp {
             });
         }
 
+        const btnLatch = document.getElementById('btn-latch-drift-toggle');
+        if (btnLatch) {
+            btnLatch.addEventListener('click', () => {
+                RRR.PHYSICS_TUNING.latchDrift = !RRR.PHYSICS_TUNING.latchDrift;
+                this.updateControlButtonStates();
+            });
+        }
+
         // Mouse drag on WebGL canvas to orbit in ORBIT_CAR mode
         this.glCanvas.addEventListener('pointerdown', (e) => {
             unlockAudio();
@@ -377,46 +527,6 @@ RRR.GameApp = class GameApp {
                 this.renderer.orbitDist = Math.max(3.2, Math.min(16.0, this.renderer.orbitDist + e.deltaY * 0.005));
             }
         }, { passive: true });
-
-        window.addEventListener('keydown', (e) => {
-            unlockAudio();
-            if (['Space', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(e.code)) {
-                e.preventDefault();
-            }
-            this.keys[e.code] = true;
-            if (e.key) this.keys[e.key.toLowerCase()] = true;
-
-            if (e.code === 'Escape') {
-                this.toggleDevMenu();
-            } else if (e.code === 'KeyR') {
-                this.resetPlayerAndRivals();
-            } else if (e.code === 'KeyV') {
-                this.cycleCameraMode();
-            } else if (e.code === 'KeyC') {
-                this.triggerDemoBoxRam();
-            } else if (e.code === 'KeyB') {
-                this.triggerManualBoost();
-            } else if (e.code === 'KeyZ') {
-                this.cycleTrackZone();
-            } else if (e.code === 'KeyP') {
-                this.toggleAutoPilot();
-            } else if (e.code === 'KeyM') {
-                this.toggleWorldMapModal();
-            } else if (e.code >= 'Digit1' && e.code <= 'Digit4') {
-                const keys = ['pacific_sunset', 'acid_warehouse', 'midnight_shibuya', 'cyber_flamingo'];
-                const idx = parseInt(e.code.replace('Digit', ''), 10) - 1;
-                this.selectVibe(keys[idx]);
-            }
-        });
-
-        window.addEventListener('keyup', (e) => {
-            this.keys[e.code] = false;
-            if (e.key) this.keys[e.key.toLowerCase()] = false;
-        });
-
-        window.addEventListener('blur', () => {
-            this.keys = {};
-        });
 
         // Vibe Selector Buttons
         document.querySelectorAll('[data-vibe]').forEach((btn) => {
@@ -459,9 +569,6 @@ RRR.GameApp = class GameApp {
 
         const btnAuto = document.getElementById('btn-autopilot');
         if (btnAuto) btnAuto.addEventListener('click', () => { unlockAudio(); this.toggleAutoPilot(); });
-
-        const btnCloseMap = document.getElementById('btn-close-map');
-        if (btnCloseMap) btnCloseMap.addEventListener('click', () => this.toggleWorldMapModal(false));
 
         const btnAudio = document.getElementById('audio-status-btn');
         if (btnAudio) {
@@ -511,6 +618,275 @@ RRR.GameApp = class GameApp {
         bindShaderSlider('slider-kuwahara', 'kuwaharaStrength', 'val-kuwahara');
         bindShaderSlider('slider-ink', 'inkOutlineStrength', 'val-ink');
         bindShaderSlider('slider-speedlines', 'speedLinesIntensity', 'val-speedlines');
+
+        this.bindRekordboxStudioEvents(unlockAudio);
+    }
+
+    toggleRekordboxPanel(forceShow) {
+        const panel = document.getElementById('rekordbox-studio-panel');
+        if (!panel) return;
+        const show = forceShow !== undefined ? forceShow : panel.classList.contains('hidden');
+        panel.classList.toggle('hidden', !show);
+        const btn = document.getElementById('btn-toggle-rekordbox');
+        if (btn) btn.classList.toggle('active', show);
+        if (show) {
+            this.renderRekordboxCrateUI();
+        }
+    }
+
+    bindRekordboxStudioEvents(unlockAudio) {
+        const rb = this.audioEngine.rekordbox;
+        if (!rb) return;
+
+        rb.studioCanvas = document.getElementById('rekordbox-canvas');
+
+        const btnToggleRb = document.getElementById('btn-toggle-rekordbox');
+        if (btnToggleRb) btnToggleRb.addEventListener('click', () => { unlockAudio(); this.toggleRekordboxPanel(); });
+
+        const btnCloseRb = document.getElementById('btn-close-rekordbox');
+        if (btnCloseRb) btnCloseRb.addEventListener('click', () => this.toggleRekordboxPanel(false));
+
+        const btnSourceMode = document.getElementById('btn-rb-source-mode');
+        if (btnSourceMode) {
+            btnSourceMode.addEventListener('click', () => {
+                unlockAudio();
+                this.audioEngine.setRekordboxMode(!this.audioEngine.rekordboxMode);
+                const isRb = this.audioEngine.rekordboxMode;
+                btnSourceMode.textContent = isRb ? '💿 SOURCE: REKORDBOX DECKS' : '🎹 SOURCE: 5-STEM SYNTH';
+                btnSourceMode.classList.toggle('active', isRb);
+            });
+        }
+
+        const btnAiDj = document.getElementById('btn-rb-aidj-toggle');
+        if (btnAiDj) {
+            btnAiDj.addEventListener('click', () => {
+                unlockAudio();
+                rb.aiDjEnabled = !rb.aiDjEnabled;
+                btnAiDj.textContent = rb.aiDjEnabled ? '🤖 AI DJ AUTO-MIX: ON' : '🖐️ AI DJ AUTO-MIX: MANUAL';
+                btnAiDj.classList.toggle('active', rb.aiDjEnabled);
+            });
+        }
+
+        const btnTrans = document.getElementById('btn-rb-auto-transition');
+        if (btnTrans) {
+            btnTrans.addEventListener('click', () => {
+                unlockAudio();
+                rb.triggerAutoTransition('MANUAL BEAT-MATCH TRANSITION');
+                this.djController.triggerReaction('DROP_HYPE', 'CROSSFADE BASS-SWAP // DECK 1 ↔ 2', 3.0);
+            });
+        }
+
+        // Song Folder Input (`webkitdirectory` / multiple files)
+        const folderIn = document.getElementById('input-mp3-folder');
+        if (folderIn) {
+            folderIn.addEventListener('change', (e) => {
+                if (e.target.files && e.target.files.length > 0) {
+                    unlockAudio();
+                    rb.loadFolderFiles(e.target.files);
+                }
+            });
+        }
+
+        // MP3 File Inputs for Deck 1 & Deck 2
+        const fileIn1 = document.getElementById('input-mp3-deck1');
+        if (fileIn1) {
+            fileIn1.addEventListener('change', (e) => {
+                if (e.target.files && e.target.files[0]) {
+                    unlockAudio();
+                    rb.loadAudioFileToDeck(e.target.files[0], 1);
+                }
+            });
+        }
+        const fileIn2 = document.getElementById('input-mp3-deck2');
+        if (fileIn2) {
+            fileIn2.addEventListener('change', (e) => {
+                if (e.target.files && e.target.files[0]) {
+                    unlockAudio();
+                    rb.loadAudioFileToDeck(e.target.files[0], 2);
+                }
+            });
+        }
+
+        // Global Drag-and-Drop MP3/WAV/JSON/Folder Support Anywhere on Window
+        window.addEventListener('dragover', (e) => {
+            e.preventDefault();
+        });
+        window.addEventListener('drop', (e) => {
+            e.preventDefault();
+            if (!e.dataTransfer || !e.dataTransfer.files || e.dataTransfer.files.length === 0) return;
+            unlockAudio();
+            this.toggleRekordboxPanel(true);
+
+            const files = Array.from(e.dataTransfer.files);
+            if (files.length >= 2) {
+                rb.loadFolderFiles(files);
+            } else {
+                const file = files[0];
+                const deckId = e.clientX > window.innerWidth * 0.5 ? 2 : 1;
+                if (file.name.endsWith('.json')) {
+                    rb.importAnalysisJson(file, deckId);
+                } else {
+                    rb.loadAudioFileToDeck(file, deckId);
+                }
+            }
+        });
+
+        // Deck 1 & Deck 2 Transport / Sync / Master / Export Buttons
+        const bindDeckTransport = (deckId, prefix) => {
+            const btnPlay = document.getElementById(`${prefix}-play`);
+            if (btnPlay) {
+                btnPlay.addEventListener('click', () => {
+                    unlockAudio();
+                    const d = rb.getDeck(deckId);
+                    if (d) d.togglePlay();
+                });
+            }
+            const btnSync = document.getElementById(`${prefix}-sync`);
+            if (btnSync) {
+                btnSync.addEventListener('click', () => {
+                    unlockAudio();
+                    const d = rb.getDeck(deckId);
+                    if (d) {
+                        d.syncEnabled = !d.syncEnabled;
+                        btnSync.classList.toggle('active', d.syncEnabled);
+                    }
+                });
+            }
+            const btnMaster = document.getElementById(`${prefix}-master`);
+            if (btnMaster) {
+                btnMaster.addEventListener('click', () => {
+                    unlockAudio();
+                    rb.setMasterDeck(deckId);
+                });
+            }
+            const btnExport = document.getElementById(`${prefix}-export`);
+            if (btnExport) {
+                btnExport.addEventListener('click', () => {
+                    unlockAudio();
+                    rb.exportAnalysisJson(deckId);
+                });
+            }
+        };
+        bindDeckTransport(1, 'btn-d1');
+        bindDeckTransport(2, 'btn-d2');
+
+        // Hot Cue Pads A, B, C, D
+        document.querySelectorAll('.rb-cue-btn').forEach((btn) => {
+            btn.addEventListener('click', () => {
+                unlockAudio();
+                const deckId = parseInt(btn.getAttribute('data-deck'), 10);
+                const cueIdx = parseInt(btn.getAttribute('data-cue'), 10);
+                const d = rb.getDeck(deckId);
+                if (d) d.jumpToHotCue(cueIdx);
+            });
+        });
+
+        // Beat-Loop Roll Pads (1/4, 1/2, 1, 2, 4, EXIT)
+        document.querySelectorAll('.rb-loop-btn').forEach((btn) => {
+            btn.addEventListener('click', () => {
+                unlockAudio();
+                const deckId = parseInt(btn.getAttribute('data-deck'), 10);
+                const beats = parseFloat(btn.getAttribute('data-loop'));
+                const d = rb.getDeck(deckId);
+                if (!d) return;
+                if (beats <= 0) d.clearLoop();
+                else d.setBeatLoop(beats);
+            });
+        });
+
+        // Deck EQ & Sound Color Filter Sliders
+        const bindDeckEq = (deckId, prefix) => {
+            const map = [
+                { id: `${prefix}-low`, prop: 'low' },
+                { id: `${prefix}-mid`, prop: 'mid' },
+                { id: `${prefix}-hi`, prop: 'high' }
+            ];
+            map.forEach(({ id, prop }) => {
+                const el = document.getElementById(id);
+                if (!el) return;
+                el.addEventListener('input', () => {
+                    const d = rb.getDeck(deckId);
+                    if (d) d.eq[prop] = parseFloat(el.value);
+                });
+            });
+            const fltrEl = document.getElementById(`${prefix}-fltr`);
+            if (fltrEl) {
+                fltrEl.addEventListener('input', () => {
+                    const d = rb.getDeck(deckId);
+                    if (d) d.colorFilter = parseFloat(fltrEl.value);
+                });
+            }
+        };
+        bindDeckEq(1, 'slider-d1');
+        bindDeckEq(2, 'slider-d2');
+
+        const xfEl = document.getElementById('slider-rb-crossfader');
+        if (xfEl) {
+            xfEl.addEventListener('input', () => {
+                rb.aiTransitionState.active = false;
+                rb.crossfader = parseFloat(xfEl.value);
+            });
+        }
+
+        rb.onStateChange = () => this.renderRekordboxCrateUI();
+    }
+
+    renderRekordboxCrateUI() {
+        const rb = this.audioEngine.rekordbox;
+        const listEl = document.getElementById('rb-crate-list');
+        const countEl = document.getElementById('rb-crate-count');
+        if (!rb || !listEl) return;
+
+        if (countEl) {
+            countEl.textContent = `${rb.crate.length} TRACKS IN CRATE`;
+        }
+
+        const masterDeck = rb.getMasterDeck();
+        const masterKey = masterDeck?.analysis?.camelot || masterDeck?.analysis?.key || '8A';
+        const d1Id = rb.deckCrateIds[1];
+        const d2Id = rb.deckCrateIds[2];
+
+        listEl.innerHTML = '';
+        rb.crate.forEach((item, idx) => {
+            const analysis = item.analysis;
+            if (!analysis) return;
+
+            const isD1 = item.id === d1Id;
+            const isD2 = item.id === d2Id;
+            const harm = RRR.CamelotWheel.getHarmonicRelation(masterKey, analysis.camelot || analysis.key);
+
+            const row = document.createElement('div');
+            row.className = `rb-crate-row${isD1 ? ' active-d1' : ''}${isD2 ? ' active-d2' : ''}`;
+            const statusTag = isD1 ? '<strong style="color:#00f5d4;">[DECK 1]</strong> ' : (isD2 ? '<strong style="color:#ff1e6b;">[DECK 2]</strong> ' : '');
+
+            row.innerHTML = `
+                <span style="color:#9e96c4;">${idx + 1}.</span>
+                <span class="rb-crate-title">${statusTag}${analysis.title}</span>
+                <span><strong>${analysis.bpm.toFixed(1)}</strong> BPM</span>
+                <span class="rb-key-pill" style="background:${analysis.camelot?.color || '#00f5d4'}">${analysis.key}</span>
+                <span class="rb-harm-badge">${harm.badge}</span>
+                <div class="rb-crate-actions">
+                    <button class="rb-sm-btn" data-load-d1="${item.id}">D1</button>
+                    <button class="rb-sm-btn" data-load-d2="${item.id}">D2</button>
+                </div>
+            `;
+
+            const btnD1 = row.querySelector('[data-load-d1]');
+            if (btnD1) {
+                btnD1.addEventListener('click', () => {
+                    this.audioEngine.init();
+                    rb.loadCrateTrackToDeck(item.id, 1);
+                });
+            }
+            const btnD2 = row.querySelector('[data-load-d2]');
+            if (btnD2) {
+                btnD2.addEventListener('click', () => {
+                    this.audioEngine.init();
+                    rb.loadCrateTrackToDeck(item.id, 2);
+                });
+            }
+            listEl.appendChild(row);
+        });
     }
 
     selectVibe(vibeKey) {
@@ -669,10 +1045,26 @@ RRR.GameApp = class GameApp {
         if (!modal) return;
         const show = forceState !== undefined ? forceState : modal.classList.contains('hidden');
         modal.classList.toggle('hidden', !show);
-        this.mode = show ? 'WORLD_MAP' : 'RACING';
+        if (show) {
+            this.keys = {};
+            this.mode = 'WORLD_MAP';
+        } else if (this.hasActiveSession) {
+            this.mode = 'RACING';
+        } else {
+            this.toggleDevMenu(true);
+        }
     }
 
     startLandmarkDriveOver(venueNode, route) {
+        this.ensureEngineInitialized('nagai_bayshore');
+        this.hasActiveSession = true;
+        const btnResume = document.getElementById('btn-resume-from-menu');
+        if (btnResume) btnResume.classList.remove('hidden');
+
+        this.audioEngine.init();
+        const badge = document.getElementById('audio-status-btn');
+        if (badge) badge.textContent = this.audioEngine.isMuted ? '🔇 AUDIO MUTED' : '🔊 138 BPM AUDIO';
+
         document.getElementById('world-map-modal').classList.add('hidden');
         const loadOverlay = document.getElementById('landmark-loading-overlay');
         loadOverlay.classList.remove('hidden');
@@ -1047,14 +1439,25 @@ RRR.GameApp = class GameApp {
 
         const elDriftState = document.getElementById('hud-drift-badge');
         if (elDriftState) {
+            const gearNum = p.gear || 1;
+            const rpmFormatted = Math.round(p.rpm || 1200).toLocaleString();
             if (p.boostTimer > 0) {
-                elDriftState.textContent = '★ PAINT SMUDGE BOOST ★';
+                const tierLabels = { 3: '★ TIER 3 REDLINE OVERDRIVE ★', 2: '★ TIER 2 FLAME BOOST ★', 1: '★ TIER 1 SPARK BOOST ★' };
+                elDriftState.textContent = tierLabels[p.boostTier] || '★ PAINT SMUDGE BOOST ★';
                 elDriftState.className = 'hud-badge badge-boost';
+            } else if (p.driftState === 'INITIATING') {
+                elDriftState.textContent = `R4 DRIFT INIT // G${gearNum} ${rpmFormatted} RPM`;
+                elDriftState.className = 'hud-badge badge-drift';
             } else if (p.driftState === 'DRIFTING') {
-                elDriftState.textContent = `R4 DRIFT // CHARGE ${Math.min(100, Math.round(p.driftCharge * 100))}%`;
+                const chargePct = Math.min(100, Math.round(p.driftCharge * 100));
+                const tierPreview = p.driftCharge >= 0.95 ? ' [T3 MAX]' : (p.driftCharge >= 0.65 ? ' [T2]' : (p.driftCharge >= 0.35 ? ' [T1]' : ''));
+                elDriftState.textContent = `R4 DRIFT // CHARGE ${chargePct}%${tierPreview}`;
+                elDriftState.className = 'hud-badge badge-drift';
+            } else if (p.driftState === 'RECOVERY') {
+                elDriftState.textContent = `EXIT SNAP // G${gearNum} ${rpmFormatted} RPM`;
                 elDriftState.className = 'hud-badge badge-drift';
             } else {
-                elDriftState.textContent = 'GRIP // READY';
+                elDriftState.textContent = `GRIP // G${gearNum} • ${rpmFormatted} RPM`;
                 elDriftState.className = 'hud-badge';
             }
         }
@@ -1096,6 +1499,29 @@ RRR.GameApp = class GameApp {
         setBar('stem-acid', stems.leadAcid);
         setBar('stem-riser', stems.fxRisers);
 
+        // Sync Rekordbox Studio UI Sliders & Status Message with AI DJ Live Movements
+        const rb = this.audioEngine.rekordbox;
+        if (rb && rb.deck1 && rb.deck2) {
+            const rbMsg = document.getElementById('rb-status-msg');
+            if (rbMsg) rbMsg.textContent = rb.statusMessage;
+
+            if (rb.aiDjEnabled) {
+                const syncVal = (id, v) => {
+                    const el = document.getElementById(id);
+                    if (el && document.activeElement !== el) el.value = v.toFixed(2);
+                };
+                syncVal('slider-d1-low', rb.deck1.eq.low);
+                syncVal('slider-d1-mid', rb.deck1.eq.mid);
+                syncVal('slider-d1-hi', rb.deck1.eq.high);
+                syncVal('slider-d1-fltr', rb.deck1.colorFilter);
+                syncVal('slider-d2-low', rb.deck2.eq.low);
+                syncVal('slider-d2-mid', rb.deck2.eq.mid);
+                syncVal('slider-d2-hi', rb.deck2.eq.high);
+                syncVal('slider-d2-fltr', rb.deck2.colorFilter);
+                syncVal('slider-rb-crossfader', rb.crossfader);
+            }
+        }
+
         this.renderDiagnosticsTelemetry();
     }
 
@@ -1103,73 +1529,82 @@ RRR.GameApp = class GameApp {
         const dt = Math.min(0.05, Math.max(0.001, (now - this.lastTime) * 0.001));
         this.lastTime = now;
 
+        if (!this.isEngineInitialized || !this.hasActiveSession) {
+            requestAnimationFrame((t) => this.loop(t));
+            return;
+        }
+
         if (this.mode === 'LANDMARK_LOADING') {
             this.updateLandmarkLoading(dt);
         }
 
-        // 1. Read Controls & Update Active Vehicles
-        this.readPlayerInputs(dt);
+        if (this.mode === 'RACING') {
+            // 1. Read Controls & Update Active Vehicles
+            this.readPlayerInputs(dt);
+
+            const activeVehicles = this.getActiveVehicles();
+
+            if (this.aiRivalsEnabled && this.hasRaceStarted) {
+                for (const r of this.rivals) {
+                    r.updateAIBrain(dt, this.trackSpline, this.playerCar, activeVehicles);
+                }
+            } else {
+                for (const r of this.rivals) {
+                    r.input.throttle = 0.0;
+                    r.input.brake = 1.0;
+                    r.input.steer = 0.0;
+                }
+            }
+
+            const callbacks = {
+                onDriftBoost: (car) => {
+                    if (car.isPlayer) {
+                        this.audioEngine.triggerDriftBoostSFX();
+                        this.djController.triggerReaction('DROP_HYPE', 'DRIFT BOOST IGNITION!!', 2.0);
+                        this.expressionHUD.spawnBanterRibbon(
+                            this.expressionHUD.boxes.player,
+                            RRR.DIALOGUE_BARKS.ON_DRIFT_BOOST,
+                            this.audioEngine
+                        );
+                    }
+                },
+                onWallScrape: (car) => {
+                    if (car.isPlayer) {
+                        this.renderer.triggerCollisionVFX(car.pos);
+                    }
+                }
+            };
+
+            for (const v of activeVehicles) {
+                v.update(dt, this.trackSpline, activeVehicles, callbacks);
+            }
+
+            const sorted = [...activeVehicles].sort((a, b) => b.totalProgress - a.totalProgress);
+            sorted.forEach((v, idx) => {
+                if (v.isPlayer && v.raceRank > 1 && idx === 0) {
+                    this.djController.triggerReaction('OVERTAKE_SMIRK', 'NEW RACE LEADER // P1!!', 2.5);
+                }
+                v.raceRank = idx + 1;
+            });
+
+            // 2. Check Car-to-Car Combat Collisions & Near-Misses
+            if (activeVehicles.length > 1) {
+                RRR.CarCombatSystem.checkCollisions(
+                    activeVehicles,
+                    this.trackSpline,
+                    (evt) => this.handleCarCollisionEvent(evt),
+                    () => {
+                        this.expressionHUD.spawnBanterRibbon(
+                            this.expressionHUD.boxes.player,
+                            RRR.DIALOGUE_BARKS.ON_NEAR_MISS,
+                            this.audioEngine
+                        );
+                    }
+                );
+            }
+        }
 
         const activeVehicles = this.getActiveVehicles();
-
-        if (this.aiRivalsEnabled && this.hasRaceStarted) {
-            for (const r of this.rivals) {
-                r.updateAIBrain(dt, this.trackSpline, this.playerCar, activeVehicles);
-            }
-        } else {
-            for (const r of this.rivals) {
-                r.input.throttle = 0.0;
-                r.input.brake = 1.0;
-                r.input.steer = 0.0;
-            }
-        }
-
-        const callbacks = {
-            onDriftBoost: (car) => {
-                if (car.isPlayer) {
-                    this.audioEngine.triggerDriftBoostSFX();
-                    this.djController.triggerReaction('DROP_HYPE', 'DRIFT BOOST IGNITION!!', 2.0);
-                    this.expressionHUD.spawnBanterRibbon(
-                        this.expressionHUD.boxes.player,
-                        RRR.DIALOGUE_BARKS.ON_DRIFT_BOOST,
-                        this.audioEngine
-                    );
-                }
-            },
-            onWallScrape: (car) => {
-                if (car.isPlayer) {
-                    this.renderer.triggerCollisionVFX(car.pos);
-                }
-            }
-        };
-
-        for (const v of activeVehicles) {
-            v.update(dt, this.trackSpline, activeVehicles, callbacks);
-        }
-
-        const sorted = [...activeVehicles].sort((a, b) => b.totalProgress - a.totalProgress);
-        sorted.forEach((v, idx) => {
-            if (v.isPlayer && v.raceRank > 1 && idx === 0) {
-                this.djController.triggerReaction('OVERTAKE_SMIRK', 'NEW RACE LEADER // P1!!', 2.5);
-            }
-            v.raceRank = idx + 1;
-        });
-
-        // 2. Check Car-to-Car Combat Collisions & Near-Misses
-        if (activeVehicles.length > 1) {
-            RRR.CarCombatSystem.checkCollisions(
-                activeVehicles,
-                this.trackSpline,
-                (evt) => this.handleCarCollisionEvent(evt),
-                () => {
-                    this.expressionHUD.spawnBanterRibbon(
-                        this.expressionHUD.boxes.player,
-                        RRR.DIALOGUE_BARKS.ON_NEAR_MISS,
-                        this.audioEngine
-                    );
-                }
-            );
-        }
 
         // 3. Check Track Vibe Zone along Spline & Update Vibe LUT Controller
         const playerSample = this.trackSpline.getSampleAtNormalizedT(this.playerCar.splineT);
@@ -1192,14 +1627,21 @@ RRR.GameApp = class GameApp {
         });
 
         // 5. Update Track DJ Boiler Room Broadcast Canvas
-        this.djController.updateAndRender(dt, this.audioEngine.state, this.vibeController.activeState);
+        this.djController.updateAndRender(
+            dt,
+            this.audioEngine.state,
+            this.vibeController.activeState,
+            this.audioEngine.rekordboxMode ? this.audioEngine.rekordbox : null
+        );
 
         // 6. Update 2D Physics Character Portrait Boxes & HUD
         this.expressionHUD.update(dt, this.audioEngine.state);
         this.updateHUDTelemetry();
 
         // 7. Update Sense-of-Speed Camera & Render Multi-Pass WebGL2 Scene + Paint Smudge
-        this.renderer.updateCameraAndParticles(dt, this.playerCar);
+        if (this.mode === 'RACING') {
+            this.renderer.updateCameraAndParticles(dt, this.playerCar);
+        }
         this.renderer.render(
             activeVehicles,
             this.playerCar,

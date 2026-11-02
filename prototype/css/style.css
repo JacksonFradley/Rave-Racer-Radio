@@ -1153,3 +1153,307 @@ html, body {
     padding-bottom: 2px;
     margin-top: 4px;
 }
+
+
+/* ============================================================================
+   PILLAR 3.4: PIONEER REKORDBOX DUAL-DECK MP3 ANALYZER & AI DJ REPLICA PANEL
+   ============================================================================ */
+#rekordbox-studio-panel {
+    position: fixed;
+    left: 50%;
+    bottom: 96px;
+    transform: translateX(-50%);
+    width: min(864px, 96vw);
+    background: rgba(9, 6, 22, 0.95);
+    border: 3px solid var(--gold);
+    box-shadow: 10px 10px 0px #000000, 0 0 28px rgba(0, 245, 212, 0.25);
+    padding: 10px 12px;
+    z-index: 30;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.rb-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 10px;
+    border-bottom: 2px solid rgba(255, 255, 255, 0.16);
+    padding-bottom: 6px;
+    flex-wrap: wrap;
+}
+
+.rb-header-left {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.rb-brand {
+    font-family: 'Fugaz One', sans-serif;
+    font-size: 14px;
+    color: var(--gold);
+    letter-spacing: 0.8px;
+}
+
+#rb-status-msg {
+    font-size: 10px;
+    font-weight: 700;
+    color: var(--cyan);
+    background: #05030d;
+    padding: 2px 8px;
+    border: 1px solid rgba(0, 245, 212, 0.35);
+}
+
+.rb-header-right {
+    display: flex;
+    gap: 5px;
+}
+
+#rekordbox-canvas {
+    width: 100%;
+    height: 224px;
+    background: #070512;
+    border: 2px solid #000000;
+    display: block;
+    cursor: pointer;
+}
+
+.rb-controls-grid {
+    display: grid;
+    grid-template-columns: 1fr 165px 1fr;
+    gap: 8px;
+    align-items: stretch;
+}
+
+.rb-deck-box {
+    background: #100b26;
+    border: 1px solid rgba(255, 255, 255, 0.22);
+    padding: 6px 8px;
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+}
+
+.rb-deck-1 {
+    border-left: 3px solid var(--cyan);
+}
+
+.rb-deck-2 {
+    border-right: 3px solid var(--magenta);
+}
+
+.rb-deck-top-row, .rb-pad-row, .rb-eq-row {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    flex-wrap: wrap;
+    font-size: 10px;
+}
+
+.rb-file-btn {
+    background: var(--cyan);
+    color: #000;
+    font-weight: 700;
+    font-size: 9px;
+    padding: 3px 7px;
+    border: 1px solid #000;
+    cursor: pointer;
+}
+
+.rb-file-btn-2 {
+    background: var(--magenta);
+    color: #fff;
+}
+
+.rb-sm-btn {
+    background: #1a123b;
+    color: #fff;
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    font-family: inherit;
+    font-size: 9px;
+    font-weight: 700;
+    padding: 3px 6px;
+    cursor: pointer;
+}
+
+.rb-sm-btn:hover, .rb-sm-btn.active {
+    background: var(--gold);
+    color: #000;
+}
+
+.rb-pad-lbl {
+    font-size: 9px;
+    font-weight: 700;
+    color: #b8b2d8;
+}
+
+.rb-cue-btn, .rb-loop-btn {
+    background: #191236;
+    color: #fff;
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    font-family: inherit;
+    font-size: 9px;
+    font-weight: 700;
+    padding: 2px 5px;
+    cursor: pointer;
+}
+
+.rb-cue-btn.cue-a { border-color: #00f5d4; color: #00f5d4; }
+.rb-cue-btn.cue-b { border-color: #ffe600; color: #ffe600; }
+.rb-cue-btn.cue-c { border-color: #ff1e6b; color: #ff1e6b; }
+.rb-cue-btn.cue-d { border-color: #bfff00; color: #bfff00; }
+
+.rb-cue-btn:hover, .rb-loop-btn:hover {
+    background: #ffffff;
+    color: #000000;
+}
+
+.rb-eq-row label {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    gap: 3px;
+    font-size: 9px;
+    font-weight: 700;
+    color: #cfc9ec;
+}
+
+.rb-eq-row input[type="range"] {
+    width: 100%;
+    accent-color: var(--cyan);
+    cursor: pointer;
+}
+
+.rb-mixer-center {
+    background: #0c081e;
+    border: 1px solid rgba(255, 230, 0, 0.35);
+    padding: 6px 8px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    gap: 4px;
+}
+
+.rb-xfade-lbl {
+    font-size: 9px;
+    font-weight: 700;
+    color: var(--gold);
+}
+
+#slider-rb-crossfader {
+    width: 100%;
+    accent-color: var(--gold);
+    cursor: pointer;
+}
+
+.rb-xfade-ends {
+    width: 100%;
+    display: flex;
+    justify-content: space-between;
+    font-size: 8px;
+    font-weight: 700;
+}
+
+.rb-drop-hint {
+    font-size: 8px;
+    color: #9e96c4;
+    text-align: center;
+}
+
+
+.rb-folder-btn {
+    background: var(--gold);
+    color: #000000;
+    padding: 4px 9px;
+    font-size: 9px;
+    font-weight: 800;
+    border: 1px solid #000;
+    display: inline-flex;
+    align-items: center;
+}
+
+.rb-folder-btn:hover {
+    background: #ffffff;
+    color: #000000;
+}
+
+.rb-crate-panel {
+    background: #080516;
+    border: 1px solid rgba(255, 255, 255, 0.22);
+    padding: 5px 8px;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.rb-crate-header {
+    display: flex;
+    justify-content: space-between;
+    font-size: 9px;
+    font-weight: 700;
+    color: var(--gold);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.14);
+    padding-bottom: 3px;
+}
+
+.rb-crate-list {
+    max-height: 82px;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+}
+
+.rb-crate-row {
+    display: grid;
+    grid-template-columns: 24px 1fr 68px 82px 110px 66px;
+    align-items: center;
+    gap: 6px;
+    font-size: 9px;
+    padding: 2px 6px;
+    background: #120c2c;
+    border-left: 2px solid transparent;
+}
+
+.rb-crate-row.active-d1 {
+    border-left-color: var(--cyan);
+    background: rgba(0, 245, 212, 0.12);
+}
+
+.rb-crate-row.active-d2 {
+    border-left-color: var(--magenta);
+    background: rgba(255, 30, 107, 0.12);
+}
+
+.rb-crate-title {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    font-weight: 700;
+    color: #ffffff;
+}
+
+.rb-key-pill {
+    display: inline-block;
+    text-align: center;
+    padding: 1px 4px;
+    font-weight: 800;
+    color: #000;
+    background: var(--cyan);
+    font-size: 8px;
+}
+
+.rb-harm-badge {
+    font-size: 8px;
+    font-weight: 700;
+    color: var(--volt);
+}
+
+.rb-crate-actions {
+    display: flex;
+    gap: 3px;
+    justify-content: flex-end;
+}
