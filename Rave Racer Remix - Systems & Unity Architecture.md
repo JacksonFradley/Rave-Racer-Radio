@@ -135,26 +135,27 @@ Standard `WheelCollider` components simulate realistic suspension and friction c
 ## Pillar 2: "Unyielding Aesthetic" Rendering & Shader Systems
 *Bringing the Hiroshi Nagai, Auto Modellista, and Redline inspirations to life in URP.*
 
-### 2.1 The "Vibe" Fluid Color Palette System
-In *Rave Racer Remix*, players do not pick a static hex color like "Red" or "Blue" for their car; they pick a **Vibe** (e.g., *Pacific Sunset 1984*, *Acid Warehouse*, *Midnight Shibuya*). As the car moves through different zones of the track and as the music hits different states, the car and world colors morph fluidly.
+### 2.1 The Hybrid "Individual Zone Colors + Fluid Race Vibe" Palette System
+In *Rave Racer Remix*, players have **full individual color control over every zone of their car** while those custom colors **morph fluidly throughout a race** in response to Track Vibe Zones, Audio Spectrum beats, Drift slip angles, and Emotion states (*Boiling Rage* / *Untouchable Cockiness*).
 
-* **Data Architecture (`VibePaletteSO` ScriptableObject):**
-  * Each Vibe defines a **2D Gradient LUT Texture** (`256x16` pixels, `RGBAHalf` format, bilinear filtering, wrap mode clamp):
-    * **X-Axis (`0–255`):** Luminance / Material ID ramp (Shadow, Midtone, Highlight, Rim, Accent 1, Accent 2, Emissive).
-    * **Y-Axis (`0–15`):** Track Zone / Musical Energy state rows.
-* **Car & Environment Material Setup:**
-  * Car textures are authored as **ID + Greyscale Value Masks** rather than RGB albedo textures:
-    * `R Channel`: Base surface luminance / shading weight.
-    * `G Channel`: Material Zone ID (Primary Body, Secondary Trim, Decals, Rims, Window Tint).
-    * `B Channel`: Specular / Halftone ramp weight.
-    * `A Channel`: Emissive / Audio-reactive mask.
-* **Runtime Shader Blending (`VibeController.cs`):**
-  * As a car crosses a `TrackZoneTrigger`, the system interpolates a global or per-renderer `MaterialPropertyBlock` parameter `_VibeRowBlend` (`float`) and blends between the current zone's LUT and the next zone's LUT via `Shader.SetGlobalTexture("_GlobalTrackVibeLUT", ...)` and `_MusicEnergyOffset`.
-  * In the shader, final color is sampled dynamically:
-    ```hlsl
-    float2 lutUV = float2(surfaceLuminance + (audioBassPulse * emissiveMask), currentZoneRowV);
-    half3 finalColor = SAMPLE_TEXTURE2D(_VibeLUT, sampler_VibeLUT, lutUV).rgb;
-    ```
+* **12 Individually Customizable Car Color Slots (`CarCustomizationPresetSO.cs` & `FluidColorSlot`):**
+  * Each of the 12 vehicle zones defines a **Player Base Color (`baseColor`)**, a **Fluid Race Shift Target (`fluidShiftColor`)**, and a per-zone **`fluidReactivity` (`0.0–1.0`)**:
+    1. **Body Primary Paint** (`_BodyPrimaryColor` $\leftrightarrow$ `_BodyPrimaryShiftColor`, e.g., Candy Royal Purple morphing to Ultraviolet Magenta on `Cars/01`)
+    2. **Body Secondary / Panda Beltline / Nose Block Split** (`_BodySecondaryColor` $\leftrightarrow$ `_BodySecondaryShiftColor`, e.g., 80s R30 Skyline Panda Black `Cars/05` or E36 Nose Split `Cars/07`)
+    3. **Livery Layer 1 (`R` Channel)**: Hot-Rod Flames (`Cars/01`), Tribal Lightning (`Cars/02`), STI Swoosh (`Cars/03`), or Center Racing Stripe (`Cars/08`)
+    4. **Livery Layer 2 (`G` Channel)**: Harigaya Brush Kanji (`Cars/01`), D1GP Checkers/Splashes (`Cars/04`), or Street Marker Hearts/Doodles (`Cars/06`)
+    5. **Livery Layer 3 (`B` Channel)**: Chrome/White Keyline Outlines (`Cars/02`), Twin Pinstripes & `#39` Door Roundel (`Cars/08`)
+    6. **Front Wheel Rim Color** (`_WheelFrontColor`)
+    7. **Rear Wheel Rim Color** (`_WheelRearColor` — supports mismatched front/rear drift setups such as Fluorescent Chartreuse Front + Hot Pink Rear on Naoki Nakamura's Pink Style PS13 `Cars/04`, plus `_WheelLipMetallic` chrome dish highlights on `Cars/01`, `05`, `07`)
+    8. **Interior Roll Cage & Bucket Seats** (`_InteriorCageColor` — Glowing Acid Green roll cage `Cars/02` or Crimson Red seats `Cars/06`)
+    9. **Windshield Sun-Strip Banner** (`_WindshieldBannerColor` — Yellow `SUBARU` / `Donut` or Pink `LBWK` top glass strip)
+    10. **Headlight Lens Tint** (`_HeadlightTintColor` — Crystal White, 90s JDM Touge Amber/Yellow quad fogs `Cars/09`, or Cyber Neon, plus asymmetric "Wink" pop-up headlight angles `Cars/08`)
+    11. **Underglow Neon Tube & Emissive Trim** (`_UnderglowColor` — Acid Green underglow `Cars/02` or Flame Orange `Cars/01`)
+    12. **Track Vibe LUT Atmosphere Coupling** (`VibePaletteSO` `256x16` 2D Gradient LUT)
+* **How Custom Colors Morph Fluidly During a Race (`VibeCar.shader` & `CarCustomizationController.cs`):**
+  1. **Dual-Stop Fluid Phase Morphing:** Every frame, `fluidPhase` is computed from `_VibeRowBlend` (Track Zone), `_AudioSpectrum.x` (Sub-Bass), `_BeatPulse`, `_GlobalNormalizedSpeed`, and `_DriftColorShift`. Each zone smoothly interpolates between the player's `baseColor` and `fluidShiftColor` (`lerp(baseCol, shiftCol, fluidPhase)`).
+  2. **Drift & Emotion Chromatic Rodrigues Hue Rotation:** Entering a high-angle R4 drift rotates custom zone colors along a harmonic RGB hue arc (`RotateHueRGB(col, _DriftColorShift * _DriftHueShiftDeg)`), while *Boiling Rage* (`>75%`) injects a beat-pulsing crimson overdrive and *Untouchable Cockiness* (`>75%`) adds an iridescent shimmer.
+  3. **Hiroshi Nagai Vibe-Coupled Shadows & Rim Highlights:** While the lit cel-shaded midtone (`steppedLit == 1`) preserves the player's custom color identity, the razor-sharp cel shadow (`steppedLit == 0`) and grazing Fresnel rim light absorb the active `TrackVibeZone`'s deep indigo/violet shadow tone and neon horizon highlight (`_VibeAtmosphereCoupling`).
 
 ### 2.2 High-Speed "Paint Smudge" Post-Processing (Redline Inspiration)
 As the player approaches top speed, colors on screen should smudge and smear like wet acrylic/oil paint being dragged by a palette knife, accompanied by bold anime ink lines.
@@ -225,6 +226,22 @@ As the player approaches top speed, colors on screen should smudge and smear lik
     * **BPM Sync:** `djAnimator.speed = currentBPM / baseAnimationBPM` so head-bobbing and deck tweaking lock 1:1 to the beat.
     * **Song Marker Reactions:** When FMOD fires a `PreDrop` marker, the DJ raises a hand on the mixer; on `Drop`, the DJ slams the crossfader, triggering strobe lights in the DJ booth and shifting the track's global Vibe palette row.
     * **Race Event Reactions:** When the player pulls off a massive collision or overtakes 1st place in front of a screen, the `RaceDirector` sends a trigger (`TriggerDJReaction(DJReactionType.HypeShock)`), swapping the DJ's face animation to a hyped grin or shocked expression.
+    * **Boiler Room Physical Booth Choreography:** Synchronized 1:1 with the dual-deck mixer state—left hand raised to the headphone earcup during transition Phase 1 (`Split-Cue` beatmatching), right hand twisting the DJM-A9 EQ/Sound Color FX rotary knob during filter sweeps, and rapid reverse platter rotation with neon motion-blur arcs on the CDJ-3000 jog wheel during UKG vinyl whip backspins.
+
+### 3.4 Rekordbox 7 Dual-Deck Analyzer & Autonomous AI DJ ("DJ KINETIX")
+* **Offline & Real-Time Rekordbox DSP Pipeline (`RekordboxAnalyzer`):**
+  * **100Hz Pulse-Folding Beatgrid & Downbeat Phase Solver:** Extracts half-wave rectified spectral flux onset envelopes and evaluates candidate tempos (`88–174 BPM`) with 4-beat bar-1 downbeat phase alignment.
+  * **24-Key Krumhansl-Kessler CQT & Pitch-Aware Camelot Wheel (`1A–12B`):** Computes a 12-bin Constant-Q pitch-class chromagram across the track's harmonic body, maps it to the 24-key Camelot Wheel, and dynamically recalculates pitch-shifted Camelot keys when `Master Tempo` (Key Lock) is off or when `Key Sync` (`±1..±2` semitones) is engaged (`+1 semitone = +7 Camelot steps`).
+  * **Integrated Auto-Trim LUFS Gain Staging & 1–10★ Club Energy Rating:** Measures top-quartile groove/drop loudness (`rawLoudnessRms`) to automatically stage each deck's pre-fader `TRIM` gain (`-6.0 dB` to `+6.0 dB` toward a `-12 dBFS` club reference) and assigns a `1–10★` Energy Rating based on sub-bass density, transient punch, and BPM.
+  * **8-Bar Phrase Segmentation & Vocal Formant Presence (`hasVocal`):** Segments every track into quantized 8-bar structural phrases (`INTRO`, `GROOVE`, `BREAKDOWN`, `PRE_DROP`, `DROP`, `OUTRO`) and flags `1–3.2 kHz` vocal formant presence (`hasVocal`) to prevent mid-band vocal clashes.
+* **CDJ-3000 + DJM-A9 Dual-Deck Audio Graph (`RekordboxDeck`):**
+  * Per-deck signal chain: `AudioSource -> Pre-Fader Auto-Trim Gain -> 3-Stem Crossover Network (DRUMS / VOCAL / INST) -> 3-Band Isolator EQ (-42dB Kill to +6.5dB) -> 6-Mode DJM-A9 Sound Color FX (FILTER, DUB_ECHO, NOISE, SPACE, SWEEP, CRUSH) -> Beat FX (ECHO, TRANS, FLANGER, MOBIUS) -> Channel Upfader (CH1/CH2) -> Equal-Power / Cut Magvel Crossfader`.
+  * Includes **CDJ-3000 Slip Mode** (silent ghost timeline continues beneath active loops and backspins, snapping back on release) and **Rekordbox Active Safety Loops** (red-and-white striped 16-beat safety loop at `mixOutSec` so a deck never runs into dead air).
+* **Autonomous AI DJ Brain & 6 Club Transition Archetypes (`RekordboxController`):**
+  * Uses **Reverse-Timed Drop Alignment** (`launchSec = dropTargetSec - buildBars * barIntervalSec`) so the incoming track's `PRE_DROP` builds underneath the outgoing track's driving sub-bass and lands on Bar 1, Beat 1 of its sustained Main `DROP` at the exact instant of the Isolator Bass-Swap (`Two-Kicks Rule`).
+  * **6 Selectable / Auto-Genre Transition Styles:** `BASS_SWAP`, `UKG_DUB_SPIN` (halving loop + Dub Echo + CDJ vinyl whip backspin), `STEM_VOCAL` (3-stem acapella float), `LOOP_ROLL` (2B -> 1B -> 1/2B snare roll + Noise sweep), and `ECHO_FREEZE_CUT` (HPF + 1/2-beat Echo tail hang + 2-beat upfader cut before dry drop slam).
+  * **Vocal Clash Guard & Race-Aware Set Director:** Automatically mutes incoming `VOCAL` stems when both decks have active vocal phrases (`fromHasVocal && toHasVocal`), and dynamically steers Camelot track selection (`+2` / `+7` Energy Boosts and `8–10★` anthems) when the player enters `BOILING` Rage (`>75%`) or the Final Lap.
+  * **Live Educational `🎓 DJ COACH` Telemetry:** Explains every real-time gain staging, phrasing, harmonic key relationship, EQ pocket carve, and bass-swap decision in plain DJ terminology.
 
 ---
 

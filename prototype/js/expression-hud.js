@@ -18,32 +18,38 @@ RRR.DRIVER_PROFILES = {
     rival_kai: {
         id: 'rival_kai',
         name: 'KAI "REDLINE"',
+        machine: '03 SHAKOTAN S13',
         role: 'RIVAL // BRUISER',
         hairColor: '#ff2244',
         jacketColor: '#1a162b',
         visorColor: '#ff4d00',
         skinColor: '#f7d3ba',
-        hairStyle: 'POMPADOUR_RED'
+        hairStyle: 'POMPADOUR_RED',
+        dotColor: '#ff1e6b'
     },
     rival_mira: {
         id: 'rival_mira',
         name: 'MIRA "VAPOR"',
+        machine: '01 WILD HORSES',
         role: 'RIVAL // STYLE QUEEN',
         hairColor: '#c74bff',
         jacketColor: '#00f5d4',
         visorColor: '#ff2a95',
         skinColor: '#ffe7d9',
-        hairStyle: 'TWIN_NEON'
+        hairStyle: 'TWIN_NEON',
+        dotColor: '#ffe600'
     },
     rival_rex: {
         id: 'rival_rex',
         name: 'REX "303"',
+        machine: '02 GRAVEL GC8',
         role: 'RIVAL // TECH SPEC',
         hairColor: '#bfff00',
         jacketColor: '#142238',
         visorColor: '#bfff00',
         skinColor: '#ecc1a1',
-        hairStyle: 'SLICK_VOLT'
+        hairStyle: 'SLICK_VOLT',
+        dotColor: '#bfff00'
     }
 };
 
@@ -84,6 +90,7 @@ RRR.ExpressionHUD = class ExpressionHUD {
 
         this.boxes = {};
         this.impactParticles = [];
+        this.impactCanvasDirty = false;
         this.hitstopFrames = 0;
         this.banterCooldown = 0;
         this.time = 0;
@@ -196,6 +203,7 @@ RRR.ExpressionHUD = class ExpressionHUD {
     }
 
     spawnImpactStarVFX(x, y, color) {
+        this.impactCanvasDirty = true;
         this.impactParticles.push({
             x: x,
             y: y,
@@ -568,12 +576,19 @@ RRR.ExpressionHUD = class ExpressionHUD {
 
     renderImpactOverlay(dt) {
         if (!this.impactCtx || !this.impactCanvas) return;
+        if (this.impactParticles.length === 0 && !this.impactCanvasDirty) return;
+
         const ctx = this.impactCtx;
         if (this.impactCanvas.width !== window.innerWidth || this.impactCanvas.height !== window.innerHeight) {
             this.impactCanvas.width = window.innerWidth;
             this.impactCanvas.height = window.innerHeight;
         }
         ctx.clearRect(0, 0, this.impactCanvas.width, this.impactCanvas.height);
+
+        if (this.impactParticles.length === 0) {
+            this.impactCanvasDirty = false;
+            return;
+        }
 
         for (let i = this.impactParticles.length - 1; i >= 0; i--) {
             const p = this.impactParticles[i];

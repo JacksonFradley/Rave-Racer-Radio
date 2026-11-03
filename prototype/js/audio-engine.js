@@ -23,6 +23,12 @@ RRR.AudioEngine = class AudioEngine {
             highMid: 0.0,
             treble: 0.0,
             beatPulse: 0.0,
+            kickPulse: 0.0,
+            snarePulse: 0.0,
+            energy: 0.0,
+            dropIntensity: 0.4,
+            beatPhase: 0.0,
+            barPhase: 0.0,
             bpm: 138,
             section: 'GROOVE', // 'GROOVE' | 'PRE_DROP' | 'DROP' | 'BREAKDOWN'
             step16: 0,
@@ -34,6 +40,8 @@ RRR.AudioEngine = class AudioEngine {
                 fxRisers: 0.0
             }
         };
+        this._prevSubBass = 0.0;
+        this._prevHighMid = 0.0;
 
         // Race-driven inputs
         this.raceParams = {
@@ -71,31 +79,31 @@ RRR.AudioEngine = class AudioEngine {
         this.masterGain = this.ctx.createGain();
         this.masterGain.gain.value = 0.72;
 
-        // Master interactive Lowpass/Highpass filter (for Collision Ducking & Landmark Drive-Over muffle)
+        // Master Lowpass filter (wide-open 20kHz butterworth during racing; gentle warm muffle only on loading screen)
         this.masterFilter = this.ctx.createBiquadFilter();
         this.masterFilter.type = 'lowpass';
-        this.masterFilter.frequency.value = 18500;
-        this.masterFilter.Q.value = 1.6;
+        this.masterFilter.frequency.value = 20000;
+        this.masterFilter.Q.value = 0.707;
 
-        // Drift Phaser / Notch sweep filter
+        // Subtle synth bus warmth filter
         this.driftFilter = this.ctx.createBiquadFilter();
         this.driftFilter.type = 'peaking';
         this.driftFilter.frequency.value = 900;
-        this.driftFilter.Q.value = 2.5;
+        this.driftFilter.Q.value = 0.8;
         this.driftFilter.gain.value = 0;
 
-        // Master Compressor for rave punch
+        // Transparent Master Glue Compressor (prevents harsh pumping on mastered club tracks)
         this.compressor = this.ctx.createDynamicsCompressor();
-        this.compressor.threshold.value = -14;
-        this.compressor.knee.value = 8;
-        this.compressor.ratio.value = 5;
-        this.compressor.attack.value = 0.004;
-        this.compressor.release.value = 0.12;
+        this.compressor.threshold.value = -5;
+        this.compressor.knee.value = 12;
+        this.compressor.ratio.value = 2.0;
+        this.compressor.attack.value = 0.012;
+        this.compressor.release.value = 0.16;
 
-        // FFT AnalyserNode
+        // FFT AnalyserNode (snappy smoothing for high-reactivity visuals)
         this.analyser = this.ctx.createAnalyser();
         this.analyser.fftSize = 256;
-        this.analyser.smoothingTimeConstant = 0.72;
+        this.analyser.smoothingTimeConstant = 0.62;
         this.fftData = new Uint8Array(this.analyser.frequencyBinCount);
 
         // Stem Gain Buses
@@ -135,7 +143,9 @@ RRR.AudioEngine = class AudioEngine {
 
         this.isStarted = true;
         this.nextNoteTime = this.ctx.currentTime + 0.05;
-        this.scheduleTimer = setInterval(() => this.scheduler(), 25);
+        if (!this.rekordboxMode) {
+            this.scheduleTimer = setInterval(() => this.scheduler(), 25);
+        }
     }
 
     setRekordboxMode(enabled) {
@@ -144,6 +154,13 @@ RRR.AudioEngine = class AudioEngine {
             const now = this.ctx.currentTime;
             this.rekordboxBus.gain.setTargetAtTime(this.rekordboxMode ? 1.0 : 0.0, now, 0.04);
             this.synthMasterBus.gain.setTargetAtTime(this.rekordboxMode ? 0.0 : 1.0, now, 0.04);
+            if (this.rekordboxMode && this.scheduleTimer) {
+                clearInterval(this.scheduleTimer);
+                this.scheduleTimer = null;
+            } else if (!this.rekordboxMode && !this.scheduleTimer) {
+                this.nextNoteTime = this.ctx.currentTime + 0.05;
+                this.scheduleTimer = setInterval(() => this.scheduler(), 25);
+            }
         }
     }
 
@@ -413,58 +430,59 @@ RRR.AudioEngine = class AudioEngine {
     }
 
     /**
-     * Triggered when two cars collide: 150ms vinyl-scratch / low-pass duck (250Hz) + impact crunch
+     * Triggered when two cars collide: subtle, clean low-end bump SFX that never ducks, filters, or detunes the music
      */
     triggerCollisionSFX(normalizedForce = 0.8) {
         if (!this.isStarted || !this.ctx) return;
         const now = this.ctx.currentTime;
-        this.collisionDuckTimer = 0.22;
 
-        // Low-pass filter slam to 250Hz then recover
-        this.masterFilter.frequency.cancelScheduledValues(now);
-        this.masterFilter.frequency.setValueAtTime(250, now);
-        this.masterFilter.frequency.exponentialRampToValueAtTime(18500, now + 0.32);
-
-        if (this.rekordboxMode && this.rekordbox) {
-            this.rekordbox.triggerVinylScratch(normalizedForce);
-        }
-
-        // Vinyl scratch / metallic impact synth
+        // Soft, unobtrusive chassis thud underneath the music
         const osc = this.ctx.createOscillator();
+        const filter = this.ctx.createBiquadFilter();
         const gain = this.ctx.createGain();
-        osc.type = 'sawtooth';
-        osc.frequency.setValueAtTime(520 * (0.8 + normalizedForce * 0.5), now);
-        osc.frequency.exponentialRampToValueAtTime(58, now + 0.16);
+        osc.type = 'triangle';
+        osc.frequency.setValueAtTime(135 * (0.85 + normalizedForce * 0.25), now);
+        osc.frequency.exponentialRampToValueAtTime(46, now + 0.11);
 
-        gain.gain.setValueAtTime(0.42 * normalizedForce, now);
-        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.18);
+        filter.type = 'lowpass';
+        filter.frequency.setValueAtTime(320, now);
 
-        osc.connect(gain);
+        gain.gain.setValueAtTime(0.11 * normalizedForce, now);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.12);
+
+        osc.connect(filter);
+        filter.connect(gain);
         gain.connect(this.masterGain);
         osc.start(now);
-        osc.stop(now + 0.19);
+        osc.stop(now + 0.13);
     }
 
     /**
-     * Triggered when exiting a drift with a charged Drift Boost
+     * Triggered when exiting a drift with a charged Drift Boost (scales pitch & punch by R4 Tier 1..3)
      */
-    triggerDriftBoostSFX() {
+    triggerDriftBoostSFX(boostTier = 1) {
         if (!this.isStarted || !this.ctx) return;
+        const tier = Math.max(1, Math.min(3, Number(boostTier) || 1));
         const now = this.ctx.currentTime;
         const osc = this.ctx.createOscillator();
         const gain = this.ctx.createGain();
-        osc.type = 'triangle';
-        osc.frequency.setValueAtTime(110, now);
-        osc.frequency.exponentialRampToValueAtTime(660, now + 0.18);
-        osc.frequency.exponentialRampToValueAtTime(85, now + 0.42);
+        osc.type = 'sine';
+        const startFreq = 140 + tier * 25;
+        const peakFreq = 330 + tier * 105;
+        const endFreq = 95 + tier * 15;
+        const dur = 0.26 + tier * 0.07;
 
-        gain.gain.setValueAtTime(0.38, now);
-        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.44);
+        osc.frequency.setValueAtTime(startFreq, now);
+        osc.frequency.exponentialRampToValueAtTime(peakFreq, now + dur * 0.45);
+        osc.frequency.exponentialRampToValueAtTime(endFreq, now + dur);
+
+        gain.gain.setValueAtTime(0.08 + tier * 0.02, now);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + dur + 0.02);
 
         osc.connect(gain);
         gain.connect(this.masterGain);
         osc.start(now);
-        osc.stop(now + 0.45);
+        osc.stop(now + dur + 0.03);
     }
 
     /**
@@ -475,34 +493,135 @@ RRR.AudioEngine = class AudioEngine {
         const now = this.ctx.currentTime;
         const osc = this.ctx.createOscillator();
         const gain = this.ctx.createGain();
-        osc.type = isRage ? 'sawtooth' : 'square';
-        osc.frequency.setValueAtTime(isRage ? 280 : 620, now);
-        osc.frequency.setValueAtTime(isRage ? 210 : 840, now + 0.04);
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(isRage ? 310 : 580, now);
+        osc.frequency.setValueAtTime(isRage ? 240 : 740, now + 0.04);
 
-        gain.gain.setValueAtTime(0.12, now);
-        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.09);
+        gain.gain.setValueAtTime(0.05, now);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.08);
 
         osc.connect(gain);
         gain.connect(this.masterGain);
         osc.start(now);
-        osc.stop(now + 0.10);
+        osc.stop(now + 0.09);
+    }
+
+    /**
+     * Triggered on 3-2-1-GO starting grid countdown ticks
+     */
+    triggerCountdownSFX(stage = 'TICK') {
+        if (!this.isStarted || !this.ctx) return;
+        const now = this.ctx.currentTime;
+        this.state.beatPulse = stage === 'GO' ? 1.0 : 0.75;
+
+        if (stage === 'GO') {
+            // Explosive R4 / Arcade Launch Synth Chord Stab + Sub Drop
+            const freqs = [523.25, 659.25, 783.99, 1046.50]; // C5 Major 7 / Rave Stab
+            freqs.forEach((f, idx) => {
+                const osc = this.ctx.createOscillator();
+                const gain = this.ctx.createGain();
+                osc.type = idx % 2 === 0 ? 'sawtooth' : 'triangle';
+                osc.frequency.setValueAtTime(f * 0.98, now);
+                osc.frequency.exponentialRampToValueAtTime(f, now + 0.04);
+
+                gain.gain.setValueAtTime(0.09, now);
+                gain.gain.exponentialRampToValueAtTime(0.001, now + 0.55);
+
+                osc.connect(gain);
+                gain.connect(this.masterGain);
+                osc.start(now);
+                osc.stop(now + 0.56);
+            });
+            return;
+        }
+
+        // Crisp 3..2..1 Arcade Beep
+        const osc = this.ctx.createOscillator();
+        const gain = this.ctx.createGain();
+        osc.type = 'triangle';
+        const baseFreq = stage === 1 ? 587.33 : 440.0; // D5 on '1', A4 on '3' & '2'
+        osc.frequency.setValueAtTime(baseFreq, now);
+
+        gain.gain.setValueAtTime(0.16, now);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.22);
+
+        osc.connect(gain);
+        gain.connect(this.masterGain);
+        osc.start(now);
+        osc.stop(now + 0.24);
+    }
+
+    /**
+     * Triggered when completing a lap at the Start/Finish line
+     */
+    triggerLapCompleteSFX(isFinalLap = false) {
+        if (!this.isStarted || !this.ctx) return;
+        const now = this.ctx.currentTime;
+        const notes = isFinalLap ? [523.25, 659.25, 783.99, 1046.50] : [440.0, 554.37, 659.25];
+        notes.forEach((freq, i) => {
+            const t = now + i * 0.065;
+            const osc = this.ctx.createOscillator();
+            const gain = this.ctx.createGain();
+            osc.type = 'triangle';
+            osc.frequency.setValueAtTime(freq, t);
+            gain.gain.setValueAtTime(0.12, t);
+            gain.gain.exponentialRampToValueAtTime(0.001, t + 0.24);
+            osc.connect(gain);
+            gain.connect(this.masterGain);
+            osc.start(t);
+            osc.stop(t + 0.25);
+        });
+    }
+
+    /**
+     * Triggered when crossing the Checkered Flag at the end of the race
+     */
+    triggerRaceFinishSFX(rank = 1) {
+        if (!this.isStarted || !this.ctx) return;
+        const now = this.ctx.currentTime;
+        const notes = rank === 1
+            ? [523.25, 659.25, 783.99, 1046.50, 1318.51]
+            : [440.0, 523.25, 659.25, 880.0];
+        notes.forEach((freq, i) => {
+            const t = now + i * 0.085;
+            const osc = this.ctx.createOscillator();
+            const gain = this.ctx.createGain();
+            osc.type = i === notes.length - 1 ? 'sawtooth' : 'triangle';
+            osc.frequency.setValueAtTime(freq, t);
+            const dur = i === notes.length - 1 ? 0.65 : 0.26;
+            gain.gain.setValueAtTime(0.13, t);
+            gain.gain.exponentialRampToValueAtTime(0.001, t + dur);
+            osc.connect(gain);
+            gain.connect(this.masterGain);
+            osc.start(t);
+            osc.stop(t + dur + 0.02);
+        });
     }
 
     update(dt, raceParams) {
         Object.assign(this.raceParams, raceParams);
 
-        // Decay beat pulse envelope smoothly
-        this.state.beatPulse = Math.max(0.0, this.state.beatPulse - dt * 4.2);
+        // Decay transient envelopes smoothly
+        this.state.beatPulse = Math.max(0.0, this.state.beatPulse - dt * 3.8);
+        this.state.kickPulse = Math.max(0.0, (this.state.kickPulse || 0.0) - dt * 4.5);
+        this.state.snarePulse = Math.max(0.0, (this.state.snarePulse || 0.0) - dt * 5.2);
+
+        const tSec = performance.now() * 0.001;
+        const activeBpm = Math.max(60, this.state.bpm || 138);
+        this.state.beatPhase = (tSec * (activeBpm / 60.0)) % 1.0;
+        this.state.barPhase = (tSec * (activeBpm / 240.0)) % 1.0;
 
         if (!this.isStarted || !this.ctx) {
-            // Provide simulated pulse if audio not yet unlocked by user gesture
-            const t = performance.now() * 0.001;
-            const beatPhase = (t * (138 / 60)) % 1.0;
-            this.state.beatPulse = Math.pow(1.0 - beatPhase, 3.0);
-            this.state.subBass = 0.35 + 0.45 * this.state.beatPulse;
-            this.state.lowMid = 0.3 + 0.25 * Math.sin(t * 4.0);
-            this.state.highMid = 0.25 + 0.35 * this.raceParams.normalizedSpeed;
-            this.state.treble = 0.2 + 0.4 * this.raceParams.normalizedSpeed;
+            // Provide simulated musical pulse if audio not yet unlocked by user gesture
+            this.state.beatPulse = Math.pow(1.0 - this.state.beatPhase, 2.6);
+            this.state.kickPulse = this.state.beatPulse;
+            this.state.snarePulse = Math.pow(1.0 - ((this.state.beatPhase + 0.5) % 1.0), 3.2) * 0.8;
+            this.state.subBass = 0.42 + 0.52 * this.state.beatPulse;
+            this.state.lowMid = 0.38 + 0.32 * Math.sin(tSec * 4.2);
+            this.state.highMid = 0.32 + 0.42 * (0.5 + 0.5 * Math.sin(tSec * 7.5));
+            this.state.treble = 0.28 + 0.45 * this.state.snarePulse;
+            this.state.energy = 0.55 + 0.35 * this.state.beatPulse;
+            this.state.dropIntensity = 0.65;
             return;
         }
 
@@ -519,12 +638,12 @@ RRR.AudioEngine = class AudioEngine {
 
         if (!this.rekordboxMode) {
             this.state.stems.kickSub = 1.0;
-            this.state.stems.percTops = Math.min(1.0, 0.28 + speed * 0.72);
-            this.state.stems.synthChords = 0.85;
+            this.state.stems.percTops = Math.min(1.0, 0.45 + speed * 0.55);
+            this.state.stems.synthChords = 0.88;
             // Acid 303 Lead unlocks during high Cockiness (>45%), 1st place, or DROP section
             const acidTarget = (cockiness > 45 || this.raceParams.isFirstPlace || this.state.section === 'DROP')
                 ? Math.min(1.0, 0.35 + (cockiness / 100) * 0.65)
-                : 0.08;
+                : 0.12;
             this.state.stems.leadAcid += (acidTarget - this.state.stems.leadAcid) * Math.min(1, dt * 4);
             this.state.stems.fxRisers = this.raceParams.isDrifting ? Math.min(1.0, this.raceParams.driftCharge) : 0.0;
         }
@@ -534,34 +653,25 @@ RRR.AudioEngine = class AudioEngine {
         this.stemBuses.synthChords.gain.setTargetAtTime(this.state.stems.synthChords, now, 0.05);
         this.stemBuses.leadAcid.gain.setTargetAtTime(this.state.stems.leadAcid, now, 0.08);
 
-        // Drift stereo resonant filter sweep
-        if (this.raceParams.isDrifting) {
-            const sweepFreq = 500 + Math.min(1.0, this.raceParams.driftCharge) * 2800;
-            this.driftFilter.frequency.setTargetAtTime(sweepFreq, now, 0.04);
-            this.driftFilter.gain.setTargetAtTime(9.0, now, 0.04);
-        } else {
-            this.driftFilter.gain.setTargetAtTime(0.0, now, 0.08);
-        }
+        // Keep synth bus filter flat/transparent so driving interactions never color the music harshly
+        this.driftFilter.gain.setTargetAtTime(0.0, now, 0.08);
 
-        // Diegetic Landmark Loading Screen low-pass filter (muffled bass from across the bay)
-        if (this.collisionDuckTimer > 0) {
-            this.collisionDuckTimer -= dt;
-        } else {
-            const targetCutoff = this.raceParams.isLoadingMuffled ? 420 : (3500 + speed * 15000);
-            this.masterFilter.frequency.setTargetAtTime(targetCutoff, now, 0.08);
-        }
+        // Keep Master Filter wide open (20kHz) during all racing; only gently muffle during Landmark loading overlay
+        const targetCutoff = this.raceParams.isLoadingMuffled ? 950 : 20000;
+        this.masterFilter.frequency.setTargetAtTime(targetCutoff, now, 0.08);
+        this.masterFilter.Q.setTargetAtTime(0.707, now, 0.08);
 
-        // Engine RPM + Drift pitch
+        // Subtle Engine RPM hum (kept well underneath the music mix)
         if (this.engineOsc1 && this.engineGain) {
-            const rpmFreq = 58 + speed * 165 + (this.raceParams.isDrifting ? 28 : 0);
+            const rpmFreq = 58 + speed * 155 + (this.raceParams.isDrifting ? 18 : 0);
             this.engineOsc1.frequency.setTargetAtTime(rpmFreq, now, 0.03);
             this.engineOsc2.frequency.setTargetAtTime(rpmFreq * 1.5, now, 0.03);
-            this.engineFilter.frequency.setTargetAtTime(rpmFreq * 2.5, now, 0.03);
-            const engVol = this.raceParams.isLoadingMuffled ? 0.03 : (0.04 + speed * 0.07);
+            this.engineFilter.frequency.setTargetAtTime(rpmFreq * 2.2, now, 0.03);
+            const engVol = this.raceParams.isLoadingMuffled ? 0.015 : (0.02 + speed * 0.035);
             this.engineGain.gain.setTargetAtTime(engVol, now, 0.05);
         }
 
-        // Extract 4 smoothed FFT frequency bands (SubBass, LowMid, HighMid, Treble)
+        // Extract 4 smoothed FFT frequency bands (SubBass, LowMid, HighMid, Treble) + Real-Time Transient Detectors
         this.analyser.getByteFrequencyData(this.fftData);
         let sub = 0, low = 0, high = 0, treb = 0;
         for (let i = 0; i < 6; i++) sub += this.fftData[i];
@@ -569,9 +679,66 @@ RRR.AudioEngine = class AudioEngine {
         for (let i = 20; i < 56; i++) high += this.fftData[i];
         for (let i = 56; i < 110; i++) treb += this.fftData[i];
 
-        this.state.subBass = Math.min(1.0, (sub / (6 * 255)) * 1.35);
-        this.state.lowMid = Math.min(1.0, (low / (14 * 255)) * 1.3);
-        this.state.highMid = Math.min(1.0, (high / (36 * 255)) * 1.5);
-        this.state.treble = Math.min(1.0, (treb / (54 * 255)) * 1.8);
+        // Use an expressive power curve so quiet/mid sections don't saturate at 1.0 all the time
+        const rawSub = Math.min(1.0, Math.pow(sub / (6 * 255), 1.28) * 1.25);
+        const rawLow = Math.min(1.0, Math.pow(low / (14 * 255), 1.25) * 1.20);
+        const rawHigh = Math.min(1.0, Math.pow(high / (36 * 255), 1.25) * 1.32);
+        const rawTreb = Math.min(1.0, Math.pow(treb / (54 * 255), 1.22) * 1.50);
+
+        const instantEnergy = Math.min(1.0, rawSub * 0.38 + rawLow * 0.24 + rawHigh * 0.22 + rawTreb * 0.16);
+        this.state.energy = (this.state.energy || 0.0) * 0.84 + instantEnergy * 0.16;
+
+        // Compute overall Song Position / Section Intensity (0.08 in Intro/Breakdown -> 0.42 in Groove -> 0.85+ in Drop)
+        let targetDrop = this.state.targetSongIntensity;
+        if (targetDrop === undefined) {
+            targetDrop = this.state.section === 'DROP' ? 0.95
+                : (this.state.section === 'PRE_DROP' ? 0.62
+                    : (this.state.section === 'BREAKDOWN' ? 0.15 : 0.40));
+            targetDrop = targetDrop * 0.75 + this.state.energy * 0.25;
+        }
+        const curDrop = this.state.dropIntensity ?? 0.35;
+        const interpRate = targetDrop > curDrop ? 4.8 : 2.0; // Fast punch into Drops, smooth release into Breakdowns
+        this.state.dropIntensity = curDrop + (targetDrop - curDrop) * Math.min(1.0, dt * interpRate);
+
+        const sectionScale = 0.22 + this.state.dropIntensity * 0.78;
+
+        // Detect real-time kick / bass and snare / synth transients scaled by current song section intensity
+        const subDelta = rawSub - this._prevSubBass;
+        const highDelta = rawHigh - this._prevHighMid;
+        this._prevSubBass = rawSub;
+        this._prevHighMid = rawHigh;
+
+        if (subDelta > 0.075 || (rawSub > 0.76 && subDelta > 0.03)) {
+            const kickStrength = Math.min(1.0, (0.55 + subDelta * 3.2) * sectionScale);
+            this.state.kickPulse = Math.max(this.state.kickPulse, kickStrength);
+            this.state.beatPulse = Math.max(this.state.beatPulse, kickStrength * 0.90);
+        }
+        if (highDelta > 0.065 || (rawTreb > 0.70 && highDelta > 0.025)) {
+            this.state.snarePulse = Math.max(this.state.snarePulse, Math.min(1.0, (0.55 + highDelta * 3.4) * sectionScale));
+        }
+
+        // Modulate exposed visual spectrum bands by song section intensity so calm sections stay composed and Drops explode!
+        this.state.subBass = rawSub * (0.30 + this.state.dropIntensity * 0.70);
+        this.state.lowMid = rawLow * (0.32 + this.state.dropIntensity * 0.68);
+        this.state.highMid = rawHigh * (0.30 + this.state.dropIntensity * 0.70);
+        this.state.treble = rawTreb * (0.28 + this.state.dropIntensity * 0.72);
+
+        // In Rekordbox Dual-Deck Mode, drive the 5 HUD stem visualizer channels from live FFT & active deck stem pads
+        if (this.rekordboxMode) {
+            const masterDeck = this.rekordbox && typeof this.rekordbox.getMasterDeck === 'function'
+                ? this.rekordbox.getMasterDeck()
+                : null;
+            const drumGate = (!masterDeck || !masterDeck.stems || masterDeck.stems.drums !== false) ? 1.0 : 0.15;
+            const vocalGate = (!masterDeck || !masterDeck.stems || masterDeck.stems.vocal !== false) ? 1.0 : 0.15;
+            const instGate = (!masterDeck || !masterDeck.stems || masterDeck.stems.inst !== false) ? 1.0 : 0.15;
+
+            this.state.stems.kickSub = Math.min(1.0, (0.22 + this.state.subBass * 0.65 + this.state.kickPulse * 0.35) * drumGate);
+            this.state.stems.percTops = Math.min(1.0, (0.20 + this.state.treble * 0.68 + this.state.snarePulse * 0.32) * instGate);
+            this.state.stems.synthChords = Math.min(1.0, (0.24 + this.state.lowMid * 0.66 + this.state.beatPulse * 0.22) * vocalGate);
+            const acidDrive = (cockiness > 45 || this.raceParams.isFirstPlace) ? 0.25 : 0.08;
+            this.state.stems.leadAcid = Math.min(1.0, (acidDrive + this.state.highMid * 0.72) * instGate);
+            const driftRiser = this.raceParams.isDrifting ? Math.min(0.65, (this.raceParams.driftCharge || 0) * 0.65) : 0.0;
+            this.state.stems.fxRisers = Math.min(1.0, 0.10 + this.state.dropIntensity * 0.45 + driftRiser + this.state.snarePulse * 0.25);
+        }
     }
 };

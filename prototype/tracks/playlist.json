@@ -1,4 +1,0 @@
-{
-  "description": "Place any .mp3, .wav, .ogg, or .flac files into this prototype/tracks/ folder and list them in the tracks array below to auto-load into Rekordbox Deck 1 & Deck 2 on startup, or simply drag-and-drop MP3 files directly into the browser window at any time.",
-  "tracks": []
-}

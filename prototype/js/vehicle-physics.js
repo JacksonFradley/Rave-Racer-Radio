@@ -17,6 +17,7 @@ RRR.PHYSICS_TUNING = {
     cornerCentrifugalPush: 0.82, // True curvature demand scalar (0.82 = natural momentum tangent on curves)
     driftSlipMax: 0.58,          // Visual chassis drift yaw angle (~33 deg)
     latchDrift: true,            // True = R4 Latch-Drift (exit via counter-steer), False = Hold Space to drift
+    transmissionMode: 'AT',      // 'AT' (Automatic 6-Speed) | 'MT' (Sequential Manual 6-Speed via Q/E or LB/RB)
     stationaryTurntable: false   // When true in Car Lab, car revs/steers/drifts in place on the turntable!
 };
 
@@ -63,6 +64,10 @@ RRR.ArcadeVehicle = class ArcadeVehicle {
         this.rollVel = 0.0;
         this.pitchVel = 0.0;
         this.wheelSpin = 0.0;
+        this.wheelSteerAngle = 0.0;
+        this.wheelJounce = [0.0, 0.0, 0.0, 0.0];
+        this.exhaustFlameIntensity = 0.0;
+        this.brakeLightIntensity = 0.0;
         this.steerSmoothed = 0.0;
 
         // 6-Speed Arcade Gearbox & Tachometer State
@@ -72,8 +77,10 @@ RRR.ArcadeVehicle = class ArcadeVehicle {
 
         // Speed & 4-Stage R4 Drift State Machine ('GRIP' | 'INITIATING' | 'DRIFTING' | 'RECOVERY')
         this.speed = config.startSpeed !== undefined ? config.startSpeed : 0.0;
-        this.maxBaseSpeed = RRR.PHYSICS_TUNING.maxBaseSpeed;
+        this.baseSpeedStat = config.maxBaseSpeed || RRR.PHYSICS_TUNING.maxBaseSpeed;
+        this.maxBaseSpeed = this.baseSpeedStat;
         this.normalizedSpeed = 0.0;
+        this.lapMidpointPassed = false;
         this.driftState = 'GRIP';
         this.driftStateTimer = 0.0;
         this.driftDirection = 0;        // -1 (Left) or +1 (Right)
@@ -104,8 +111,7 @@ RRR.ArcadeVehicle = class ArcadeVehicle {
             throttle: 0,
             brake: 0,
             steer: 0,
-            drift: false,
-            boost: false
+            drift: false
         };
 
         if (trackSpline) {
@@ -125,6 +131,10 @@ RRR.ArcadeVehicle = class ArcadeVehicle {
         this.pitchVel = 0.0;
         this.knockbackLatVel = 0.0;
         this.steerSmoothed = 0.0;
+        this.wheelSteerAngle = 0.0;
+        this.wheelJounce = [0.0, 0.0, 0.0, 0.0];
+        this.exhaustFlameIntensity = 0.0;
+        this.brakeLightIntensity = 0.0;
         this.gear = 1;
         this.rpm = 1200;
         this.shiftTimer = 0.0;
@@ -135,6 +145,7 @@ RRR.ArcadeVehicle = class ArcadeVehicle {
         this.counterSteerHoldTimer = 0.0;
         this.straightHoldTimer = 0.0;
         this.boostTier = 0;
+        this.lapMidpointPassed = false;
 
         const s = trackSpline.getSampleAtNormalizedT(this.splineT);
         this.syncWorldTransform(s);
@@ -149,61 +160,57 @@ RRR.ArcadeVehicle = class ArcadeVehicle {
         const R = s.right;
         const U = s.up;
 
-        // 1. Travel basis (rotated by headingOffset in the road plane)
+        // 1. Travel basis (rotated by headingOffset in the road plane, zero-allocation in-place update)
         const ch = Math.cos(this.headingOffset);
         const sh = Math.sin(this.headingOffset);
-        this.forward = [
-            T[0] * ch + R[0] * sh,
-            T[1] * ch + R[1] * sh,
-            T[2] * ch + R[2] * sh
-        ];
-        this.right = [
-            -T[0] * sh + R[0] * ch,
-            -T[1] * sh + R[1] * ch,
-            -T[2] * sh + R[2] * ch
-        ];
-        this.up = [U[0], U[1], U[2]];
+        this.forward[0] = T[0] * ch + R[0] * sh;
+        this.forward[1] = T[1] * ch + R[1] * sh;
+        this.forward[2] = T[2] * ch + R[2] * sh;
+
+        this.right[0] = -T[0] * sh + R[0] * ch;
+        this.right[1] = -T[1] * sh + R[1] * ch;
+        this.right[2] = -T[2] * sh + R[2] * ch;
+
+        this.up[0] = U[0];
+        this.up[1] = U[1];
+        this.up[2] = U[2];
 
         // 2. Visual chassis basis (rotated by headingOffset + visualSlipAngle)
         const totalYawOffset = this.headingOffset + this.visualSlipAngle;
         const cv = Math.cos(totalYawOffset);
         const sv = Math.sin(totalYawOffset);
 
-        const VF = [
-            T[0] * cv + R[0] * sv,
-            T[1] * cv + R[1] * sv - this.visualPitch,
-            T[2] * cv + R[2] * sv
-        ];
-        const vfLen = Math.hypot(VF[0], VF[1], VF[2]) || 1;
-        VF[0] /= vfLen; VF[1] /= vfLen; VF[2] /= vfLen;
+        let vfx = T[0] * cv + R[0] * sv;
+        let vfy = T[1] * cv + R[1] * sv - this.visualPitch;
+        let vfz = T[2] * cv + R[2] * sv;
+        const vfLen = Math.hypot(vfx, vfy, vfz) || 1;
+        vfx /= vfLen; vfy /= vfLen; vfz /= vfLen;
 
-        const VR_flat = [
-            -T[0] * sv + R[0] * cv,
-            -T[1] * sv + R[1] * cv,
-            -T[2] * sv + R[2] * cv
-        ];
+        const vrfx = -T[0] * sv + R[0] * cv;
+        const vrfy = -T[1] * sv + R[1] * cv;
+        const vrfz = -T[2] * sv + R[2] * cv;
 
         // Apply chassis body roll around VF
         const cr = Math.cos(this.visualRoll);
         const sr = Math.sin(this.visualRoll);
-        const VR = [
-            VR_flat[0] * cr + U[0] * sr,
-            VR_flat[1] * cr + U[1] * sr,
-            VR_flat[2] * cr + U[2] * sr
-        ];
-        const vrLen = Math.hypot(VR[0], VR[1], VR[2]) || 1;
-        VR[0] /= vrLen; VR[1] /= vrLen; VR[2] /= vrLen;
+        let vrx = vrfx * cr + U[0] * sr;
+        let vry = vrfy * cr + U[1] * sr;
+        let vrz = vrfz * cr + U[2] * sr;
+        const vrLen = Math.hypot(vrx, vry, vrz) || 1;
+        vrx /= vrLen; vry /= vrLen; vrz /= vrLen;
+
+        this.visualForward[0] = vfx;
+        this.visualForward[1] = vfy;
+        this.visualForward[2] = vfz;
+
+        this.visualRight[0] = vrx;
+        this.visualRight[1] = vry;
+        this.visualRight[2] = vrz;
 
         // Visual Up = VR x VF (orthonormal right-handed frame)
-        const VU = [
-            VR[1] * VF[2] - VR[2] * VF[1],
-            VR[2] * VF[0] - VR[0] * VF[2],
-            VR[0] * VF[1] - VR[1] * VF[0]
-        ];
-
-        this.visualForward = VF;
-        this.visualRight = VR;
-        this.visualUp = VU;
+        this.visualUp[0] = vry * vfz - vrz * vfy;
+        this.visualUp[1] = vrz * vfx - vrx * vfz;
+        this.visualUp[2] = vrx * vfy - vry * vfx;
 
         this.headingYaw = Math.atan2(-this.forward[0], this.forward[2]);
         this.visualYaw = Math.atan2(-this.visualForward[0], this.visualForward[2]);
@@ -213,8 +220,38 @@ RRR.ArcadeVehicle = class ArcadeVehicle {
         return this.rage >= 75;
     }
 
+    set isBoiling(val) {
+        if (!val && this.rage >= 75) this.rage = 20;
+    }
+
     get isUntouchable() {
         return this.cockiness >= 75;
+    }
+
+    set isUntouchable(val) {
+        if (!val && this.cockiness >= 75) this.cockiness = 45;
+    }
+
+    shiftUpManual() {
+        if (this.gear < 6 && this.shiftTimer <= 0) {
+            this.gear++;
+            this.shiftTimer = 0.065;
+            this.pitchVel -= 0.24;
+            this.rpm = Math.max(2200, this.rpm - 1800);
+            return true;
+        }
+        return false;
+    }
+
+    shiftDownManual() {
+        if (this.gear > 1 && this.shiftTimer <= 0) {
+            this.gear--;
+            this.shiftTimer = 0.055;
+            this.pitchVel += 0.28;
+            this.rpm = Math.min(9500, this.rpm + 1950);
+            return true;
+        }
+        return false;
     }
 
     addEmotion(rageDelta, cockinessDelta, reason) {
@@ -232,7 +269,11 @@ RRR.ArcadeVehicle = class ArcadeVehicle {
 
     update(dt, trackSpline, allVehicles, callbacks) {
         const tune = RRR.PHYSICS_TUNING;
-        this.maxBaseSpeed = tune.maxBaseSpeed;
+        if (this.isPlayer) {
+            this.maxBaseSpeed = tune.maxBaseSpeed;
+        } else {
+            this.maxBaseSpeed = this.baseSpeedStat || 88.0;
+        }
 
         if (this.wallScrapeCooldown > 0) this.wallScrapeCooldown -= dt;
         if (this.collisionCooldown > 0) this.collisionCooldown -= dt;
@@ -279,7 +320,8 @@ RRR.ArcadeVehicle = class ArcadeVehicle {
         }
 
         // 1. Top Speed, 6-Speed Arcade Gearbox & Slope Gravity
-        let topSpeed = this.maxBaseSpeed * (this.personality.baseSpeedScalar || 1.0);
+        const aiSpeedScalar = (this.personality.baseSpeedScalar || 1.0) * (this.personality.rubberBandScalar || 1.0);
+        let topSpeed = this.maxBaseSpeed * aiSpeedScalar;
 
         if (this.isBoiling) {
             for (const other of allVehicles) {
@@ -300,23 +342,26 @@ RRR.ArcadeVehicle = class ArcadeVehicle {
             this.boostIntensity = Math.max(0.0, this.boostIntensity - dt * 3.0);
         }
 
-        // 6-Speed Arcade Gearbox (ratios across normalized speed)
+        // 6-Speed Arcade Gearbox (ratios across normalized speed; supports AT & Manual MT)
         const gearRatios = [0.18, 0.34, 0.50, 0.67, 0.84, 1.05];
         const speedRatio = Math.max(0.0, Math.abs(this.speed) / this.maxBaseSpeed);
-        let targetGear = 6;
-        for (let g = 0; g < 6; g++) {
-            const threshold = (g + 1 === this.gear) ? gearRatios[g] * 0.98 : gearRatios[g] * 0.92;
-            if (speedRatio < threshold) {
-                targetGear = g + 1;
-                break;
+        const isManual = this.isPlayer && tune.transmissionMode === 'MT';
+        if (!isManual) {
+            let targetGear = 6;
+            for (let g = 0; g < 6; g++) {
+                const threshold = (g + 1 === this.gear) ? gearRatios[g] * 0.98 : gearRatios[g] * 0.92;
+                if (speedRatio < threshold) {
+                    targetGear = g + 1;
+                    break;
+                }
             }
-        }
-        if (targetGear > this.gear && this.shiftTimer <= 0) {
-            this.gear = targetGear;
-            this.shiftTimer = 0.065; // 65ms upshift impulse
-            this.pitchVel -= 0.22;   // Upshift chassis rock kick
-        } else if (targetGear < this.gear && this.shiftTimer <= 0 && this.driftState === 'GRIP') {
-            this.gear = targetGear;
+            if (targetGear > this.gear && this.shiftTimer <= 0) {
+                this.gear = targetGear;
+                this.shiftTimer = 0.065; // 65ms upshift impulse
+                this.pitchVel -= 0.22;   // Upshift chassis rock kick
+            } else if (targetGear < this.gear && this.shiftTimer <= 0 && this.driftState === 'GRIP') {
+                this.gear = targetGear;
+            }
         }
         if (this.shiftTimer > 0) {
             this.shiftTimer = Math.max(0.0, this.shiftTimer - dt);
@@ -324,12 +369,24 @@ RRR.ArcadeVehicle = class ArcadeVehicle {
 
         const prevRatio = this.gear > 1 ? gearRatios[this.gear - 2] * 0.72 : 0.0;
         const currRatio = gearRatios[this.gear - 1];
-        const gearBandProgress = Math.max(0.0, Math.min(1.12, (speedRatio - prevRatio) / Math.max(0.05, currRatio - prevRatio)));
+        const gearBandProgress = Math.max(0.0, Math.min(1.18, (speedRatio - prevRatio) / Math.max(0.05, currRatio - prevRatio)));
         const targetRpm = 1200 + gearBandProgress * 7600 + (this.boostTimer > 0 ? 600 : 0) + (this.driftState === 'DRIFTING' ? 450 : 0);
         this.rpm += (Math.min(9500, Math.max(1200, targetRpm)) - this.rpm) * Math.min(1.0, dt * 18.0);
 
         // Powerband torque multiplier (peaks in mid-high RPM band, brief cut during 65ms upshift)
-        const powerbandTorque = this.shiftTimer > 0 ? 0.35 : (0.88 + 0.18 * Math.sin(Math.min(1.0, gearBandProgress) * Math.PI));
+        let powerbandTorque = this.shiftTimer > 0 ? 0.35 : (0.88 + 0.18 * Math.sin(Math.min(1.0, gearBandProgress) * Math.PI));
+        if (isManual) {
+            if (gearBandProgress > 1.04) {
+                // Soft rev-limiter bounce if player holds a low gear past redline in MT
+                powerbandTorque *= 0.25;
+            } else if (this.gear > 2 && speedRatio < prevRatio * 0.78) {
+                // Slight lugging penalty if in too high a gear at low speed
+                powerbandTorque *= 0.74;
+            } else {
+                // MT reward: +4% crisp torque response in optimal RPM band
+                powerbandTorque *= 1.04;
+            }
+        }
 
         if (this.input.throttle > 0) {
             const lowEndTorque = this.speed < 45.0 ? tune.accelLow : tune.accelHigh;
@@ -376,7 +433,7 @@ RRR.ArcadeVehicle = class ArcadeVehicle {
                 this.straightHoldTimer = 0.0;
                 this.pitchVel += 0.45;
                 this.rollVel += this.driftDirection * 0.55;
-                if (this.gear > 2) this.gear--;
+                if (!(this.isPlayer && tune.transmissionMode === 'MT') && this.gear > 2) this.gear--;
                 this.rpm = Math.min(9500, this.rpm + 1100);
             }
         } else if (this.driftState === 'INITIATING') {
@@ -474,13 +531,15 @@ RRR.ArcadeVehicle = class ArcadeVehicle {
             this.headingOffset += (targetTurntableHeading - this.headingOffset) * Math.min(1.0, dt * 8.0);
             this.yawRate = 0.0;
         } else {
-            const forwardSpeed = this.speed * Math.cos(this.headingOffset);
+            // Preserve longitudinal arc speed during cornering/drifting so turns never artificially choke forward speed
+            const forwardSpeed = this.speed * Math.cos(this.headingOffset * 0.35);
             const ds = forwardSpeed * dt;
             const steerAuthorityScale = tune.maxSteerAngle / 0.36;
 
-            // Road curvature demand & banking assist
+            // Road curvature demand & banking assist (capped to standard minimum turn radius R >= 54m)
+            const effectiveKappa = Math.max(-0.015, Math.min(0.015, curvatureRadPerM));
             const bankAssist = Math.sin(currSample.bank || 0) * 0.0022 * ds;
-            const roadYawDemand = (curvatureRadPerM * ds * tune.cornerCentrifugalPush) - bankAssist;
+            const roadYawDemand = (effectiveKappa * ds * tune.cornerCentrifugalPush) - bankAssist;
 
             if (this.driftState === 'DRIFTING' || this.driftState === 'INITIATING') {
                 const inwardSteer = Math.max(0.0, this.steerSmoothed * this.driftDirection);
@@ -488,8 +547,8 @@ RRR.ArcadeVehicle = class ArcadeVehicle {
 
                 // Base drift turning rate + rail-assisted curve sweep
                 const baseDriftTurnRate = this.driftDirection * (0.42 + inwardSteer * 0.52 - counterSteer * 0.38) * steerAuthorityScale;
-                const sameWayCurve = (Math.sign(curvatureRadPerM) === this.driftDirection)
-                    ? Math.abs(curvatureRadPerM) * Math.max(0.0, forwardSpeed) * (0.58 + inwardSteer * 0.32 - counterSteer * 0.26)
+                const sameWayCurve = (Math.sign(effectiveKappa) === this.driftDirection)
+                    ? Math.abs(effectiveKappa) * Math.max(0.0, forwardSpeed) * (0.58 + inwardSteer * 0.32 - counterSteer * 0.26)
                     : 0.0;
                 const targetDriftYawRate = baseDriftTurnRate + this.driftDirection * sameWayCurve;
                 this.yawRate += (targetDriftYawRate - this.yawRate) * Math.min(1.0, dt * 14.0);
@@ -507,7 +566,7 @@ RRR.ArcadeVehicle = class ArcadeVehicle {
             }
 
             this.headingOffset += this.yawRate * dt - roadYawDemand;
-            this.headingOffset = Math.max(-0.85, Math.min(0.85, this.headingOffset));
+            this.headingOffset = Math.max(-0.68, Math.min(0.68, this.headingOffset));
 
             // 4. Advance Lateral & Forward Coordinates along the 3D Spline
             this.lateralVelocity = this.speed * Math.sin(this.headingOffset) + this.knockbackLatVel;
@@ -522,12 +581,12 @@ RRR.ArcadeVehicle = class ArcadeVehicle {
                 this.knockbackLatVel = -wallSide * 2.2;
 
                 if ((wallSide > 0 && this.headingOffset > 0) || (wallSide < 0 && this.headingOffset < 0)) {
-                    this.headingOffset *= Math.max(0.0, 1.0 - dt * 18.0);
-                    this.yawRate *= Math.max(0.0, 1.0 - dt * 18.0);
+                    this.headingOffset *= Math.max(0.0, 1.0 - dt * 28.0);
+                    this.yawRate *= Math.max(0.0, 1.0 - dt * 28.0);
                 }
 
                 const impactAngleFactor = Math.abs(Math.sin(this.headingOffset));
-                this.speed *= Math.max(0.0, 1.0 - impactAngleFactor * 0.22 * dt);
+                this.speed *= Math.max(0.0, 1.0 - impactAngleFactor * 0.14 * dt);
 
                 if (this.wallScrapeCooldown <= 0 && this.speed > 40) {
                     this.wallScrapeCooldown = 0.75;
@@ -538,17 +597,32 @@ RRR.ArcadeVehicle = class ArcadeVehicle {
                 }
             }
 
-            const dT = ds / trackSpline.totalLength;
+            // Frenet-Serret Curvilinear Metric Scale Factor: h_s = 1 - kappa * n
+            // Compensates for shorter inner-apex path and longer outer-wall path so 3D world speed stays constant!
+            const metricScale = Math.max(0.74, Math.min(1.28, 1.0 - curvatureRadPerM * this.lateralOffset));
+            const dT = (ds / metricScale) / trackSpline.totalLength;
             const prevT = this.splineT;
             this.splineT = ((this.splineT + dT) % 1.0 + 1.0) % 1.0;
 
+            if (this.splineT >= 0.35 && this.splineT <= 0.65) {
+                this.lapMidpointPassed = true;
+            }
+
             if (this.splineT < 0.15 && prevT > 0.85 && forwardSpeed > 0) {
-                this.lap++;
-                if (callbacks && callbacks.onLapComplete) {
-                    callbacks.onLapComplete(this, this.lap);
+                if (this.lapMidpointPassed) {
+                    this.lap++;
+                    this.lapMidpointPassed = false;
+                    if (callbacks && callbacks.onLapComplete) {
+                        callbacks.onLapComplete(this, this.lap);
+                    }
                 }
             } else if (this.splineT > 0.85 && prevT < 0.15 && forwardSpeed < 0) {
-                this.lap = Math.max(1, this.lap - 1);
+                if (this.lap > 1) {
+                    this.lap--;
+                    this.lapMidpointPassed = true;
+                } else {
+                    this.lapMidpointPassed = false;
+                }
             }
             this.totalProgress = (this.lap - 1) + this.splineT;
         }
@@ -595,7 +669,41 @@ RRR.ArcadeVehicle = class ArcadeVehicle {
         this.visualPitch += this.pitchVel * physDt;
         this.visualPitch = Math.max(-0.14, Math.min(0.14, this.visualPitch));
 
-        this.wheelSpin += this.speed * dt * 1.8;
+        const spinSpeed = (this.isPlayer && tune.stationaryTurntable) ? Math.max(this.speed, this.input.throttle * 55.0) : this.speed;
+        this.wheelSpin = (this.wheelSpin + (spinSpeed / 0.36) * dt) % (Math.PI * 200.0);
+
+        // Front wheel steering angle (counter-steers into the slide during R4 drifts!)
+        const targetWheelSteer = Math.max(
+            -0.64,
+            Math.min(0.64, this.steerSmoothed * 0.56 - this.visualSlipAngle * 0.68)
+        );
+        this.wheelSteerAngle += (targetWheelSteer - this.wheelSteerAngle) * Math.min(1.0, dt * 18.0);
+
+        // 4-Corner Suspension Jounce (FL, FR, RL, RR) + Curb Rumble Vibration
+        const onCurbApron = Math.abs(this.lateralOffset) > (roadHalfWidth - 2.2) && Math.abs(this.speed) > 12.0;
+        const curbBuzz = onCurbApron ? Math.sin(this.splineT * 1800.0) * 0.024 : 0.0;
+        const pJounce = this.visualPitch * 0.42;
+        const rJounce = this.visualRoll * 0.36;
+        this.wheelJounce[0] = Math.max(-0.07, Math.min(0.08,  pJounce - rJounce + (this.lateralOffset < 0 ? curbBuzz : 0))); // FL
+        this.wheelJounce[1] = Math.max(-0.07, Math.min(0.08,  pJounce + rJounce + (this.lateralOffset > 0 ? curbBuzz : 0))); // FR
+        this.wheelJounce[2] = Math.max(-0.07, Math.min(0.08, -pJounce - rJounce - (this.lateralOffset < 0 ? curbBuzz : 0))); // RL
+        this.wheelJounce[3] = Math.max(-0.07, Math.min(0.08, -pJounce + rJounce - (this.lateralOffset > 0 ? curbBuzz : 0))); // RR
+
+        // Exhaust Afterburner / Gear-Shift Backfire & Brake Light Visual Response
+        let targetFlame = 0.0;
+        if (this.boostTimer > 0) {
+            targetFlame = 0.65 + (this.boostTier || 1) * 0.15;
+        } else if (this.shiftTimer > 0 || this.driftState === 'INITIATING') {
+            targetFlame = 0.95;
+        } else if (this.driftState === 'DRIFTING' && this.driftCharge > 0.35) {
+            targetFlame = 0.28 + this.driftCharge * 0.42;
+        } else if (this.rpm > 6600 && this.input.throttle < 0.2) {
+            targetFlame = 0.55; // Overrun decel backfire pop
+        }
+        this.exhaustFlameIntensity += (targetFlame - this.exhaustFlameIntensity) * Math.min(1.0, dt * (targetFlame > this.exhaustFlameIntensity ? 28.0 : 12.0));
+
+        const targetBrakeGlow = (this.input.brake > 0.1 || this.driftState === 'INITIATING') ? 1.0 : 0.0;
+        this.brakeLightIntensity += (targetBrakeGlow - this.brakeLightIntensity) * Math.min(1.0, dt * 20.0);
 
         // 7. Compute Exact 3D World Position & Orthonormal Basis Vectors
         const newSample = trackSpline.getSampleAtNormalizedT(this.splineT);
@@ -621,7 +729,7 @@ RRR.ArcadeVehicle = class ArcadeVehicle {
         } else if (progressDiff < -0.05) {
             rubberBand = 0.92;
         }
-        this.personality.baseSpeedScalar = rubberBand;
+        this.personality.rubberBandScalar = rubberBand;
 
         const distToPlayerT = Math.abs(playerCar.totalProgress - this.totalProgress);
         if (this.isBoiling && distToPlayerT < 0.03) {
@@ -668,7 +776,9 @@ RRR.CarCombatSystem = class CarCombatSystem {
                 const b = vehicles[j];
 
                 const dx = b.pos[0] - a.pos[0];
+                const dy = b.pos[1] - a.pos[1];
                 const dz = b.pos[2] - a.pos[2];
+                if (Math.abs(dy) > 4.5) continue; // Grade-separated 3D overpass/underpass clearance
                 const dist = Math.hypot(dx, dz);
 
                 if (dist > 3.1 && dist < 5.2 && (a.isPlayer || b.isPlayer)) {
@@ -689,7 +799,6 @@ RRR.CarCombatSystem = class CarCombatSystem {
                     const nx = dx / dist;
                     const nz = dz / dist;
 
-                    const dotRight = nx * a.right[0] + nz * a.right[2];
                     const dotForward = nx * a.forward[0] + nz * a.forward[2];
 
                     let attacker = a;

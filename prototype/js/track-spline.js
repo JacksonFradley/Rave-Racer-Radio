@@ -11,29 +11,51 @@ RRR.wrapAngle = function wrapAngle(rad) {
     return rad;
 };
 
+/**
+ * RAVE RACER REMIX — STANDARD MAP & TRACK BUILDING RULES FOR CONSTANT PERCEIVED SPEED
+ * Enforced both by control-point design and automatically by TrackSpline.buildSplineTable():
+ *  1. Centripetal Catmull-Rom (alpha = 0.5) knot parameterization to prevent chord-length overshoot loops.
+ *  2. Minimum Centerline Turn Radius: R_min >= 3.6 * roadHalfWidth (>= 54m) so inner/outer curb ratios stay bounded.
+ *  3. Multi-Node Corner Arcs: Max chord deflection <= 48° per node (90° turn >= 2 nodes; 180° hairpin >= 4 nodes).
+ *  4. Chord Spacing Envelope: Control points spaced 80m–220m apart (avoid < 65m chords next to > 200m straights).
+ *  5. Width Continuity: Road halfWidth varies by at most ±0.6m across corners so peripheral optical flow stays constant.
+ *  6. Constant Physical Sample Density: ds = 2.50m per sample regardless of total circuit length, with post-relaxation
+ *     3D arc-length re-equalization so sample spacing never compresses or stretches inside curves.
+ */
+RRR.MAP_SPEED_STANDARDS = {
+    targetSampleSpacingMeters: 2.50,
+    minTurnRadiusRatioToHalfWidth: 3.6,
+    minAbsoluteTurnRadiusMeters: 54.0,
+    maxChordDeflectionDeg: 48.0,
+    maxHalfWidthDeltaInCorners: 0.75
+};
+
 RRR.TRACK_PRESETS = {
     straight_drag: {
         id: 'straight_drag',
         name: 'TRACK 01 // STRAIGHTAWAY & DRAG RUNWAY',
         subtitle: 'Zero-Curvature 600m Straight + Wide Turnaround Loop',
         desc: 'Isolates W/S acceleration, A/D lane changes, guardrail slides, FOV warp, and high-speed Paint Smudge without corner curvature.',
-        roadHalfWidth: 15.0,
+        roadHalfWidth: 14.5,
         controlPoints: [
-            // 750m Dead-Straight Main Runway along +Z (X = 0 across P_last..P_4 so curvature is strictly 0.000 at start!)
+            // 750m Dead-Straight Main Runway along +Z (X = 0 across P_last..P_5 so curvature is strictly 0.000 at start!)
             { pos: [0, 0, 0], bank: 0.0, halfWidth: 14.5, zone: 0 },
-            { pos: [0, 0, 150], bank: 0.0, halfWidth: 14.0, zone: 0 },
-            { pos: [0, 0, 300], bank: 0.0, halfWidth: 13.5, zone: 0 },
-            { pos: [0, 0, 450], bank: 0.0, halfWidth: 13.0, zone: 1 },
-            { pos: [0, 0, 600], bank: 0.0, halfWidth: 13.5, zone: 1 },
-            { pos: [0, 0, 750], bank: 0.0, halfWidth: 15.5, zone: 2 },
-            // Wide gentle turnaround loop back to start
-            { pos: [-120, 0, 880], bank: 0.06, halfWidth: 17.0, zone: 2 },
-            { pos: [-260, 0, 750], bank: 0.04, halfWidth: 16.0, zone: 2 },
-            { pos: [-260, 0, 350], bank: 0.0, halfWidth: 13.5, zone: 3 },
-            { pos: [-260, 0, -180], bank: 0.0, halfWidth: 15.0, zone: 3 },
-            { pos: [-130, 0, -320], bank: 0.06, halfWidth: 16.8, zone: 0 },
-            { pos: [0, 0, -220], bank: 0.0, halfWidth: 15.0, zone: 0 },
-            { pos: [0, 0, -110], bank: 0.0, halfWidth: 14.8, zone: 0 }
+            { pos: [0, 0, 150], bank: 0.0, halfWidth: 14.5, zone: 0 },
+            { pos: [0, 0, 300], bank: 0.0, halfWidth: 14.5, zone: 0 },
+            { pos: [0, 0, 450], bank: 0.0, halfWidth: 14.5, zone: 1 },
+            { pos: [0, 0, 600], bank: 0.0, halfWidth: 14.5, zone: 1 },
+            { pos: [0, 0, 750], bank: 0.0, halfWidth: 14.8, zone: 2 },
+            // 4-Node Constant-Radius North Turnaround (Diameter 280m, R >= 76m)
+            { pos: [-70, 0, 880], bank: 0.08, halfWidth: 15.0, zone: 2 },
+            { pos: [-210, 0, 880], bank: 0.08, halfWidth: 15.0, zone: 2 },
+            { pos: [-280, 0, 750], bank: 0.04, halfWidth: 14.8, zone: 2 },
+            { pos: [-280, 0, 450], bank: 0.0, halfWidth: 14.5, zone: 3 },
+            { pos: [-280, 0, 150], bank: 0.0, halfWidth: 14.5, zone: 3 },
+            { pos: [-280, 0, -150], bank: 0.04, halfWidth: 14.8, zone: 3 },
+            // 4-Node Constant-Radius South Turnaround (Diameter 280m, R >= 76m)
+            { pos: [-210, 0, -280], bank: 0.08, halfWidth: 15.0, zone: 0 },
+            { pos: [-70, 0, -280], bank: 0.08, halfWidth: 15.0, zone: 0 },
+            { pos: [0, 0, -150], bank: 0.0, halfWidth: 14.5, zone: 0 }
         ]
     },
 
@@ -42,21 +64,23 @@ RRR.TRACK_PRESETS = {
         name: 'TRACK 02 // R4 DRIFT SKIDPAD & HAIRPIN ARENA',
         subtitle: 'Wide Constant-Radius Drift Curves + 180° Hairpins + Chicane',
         desc: 'Designed to tune R4 drift initiation, slip angles (15°–48°), centrifugal corner push, drift charge rate, and boost exits.',
-        roadHalfWidth: 15.0,
+        roadHalfWidth: 14.8,
         controlPoints: [
-            { pos: [0, 0, 0], bank: 0.0, halfWidth: 13.5, zone: 0 },
-            { pos: [0, 0, 120], bank: 0.0, halfWidth: 15.2, zone: 0 },
-            // Long sweeping Right drift arc (widened apex for deep slip angles)
-            { pos: [-70, 0, 230], bank: 0.12, halfWidth: 16.8, zone: 1 },
-            { pos: [-190, 0, 230], bank: 0.14, halfWidth: 17.2, zone: 1 },
-            { pos: [-260, 0, 120], bank: 0.12, halfWidth: 16.0, zone: 1 },
-            // S-Chicane transition
-            { pos: [-210, 0, 10], bank: -0.10, halfWidth: 15.2, zone: 2 },
-            { pos: [-270, 0, -100], bank: 0.12, halfWidth: 15.8, zone: 2 },
-            // Tight 180° Hairpin Left (wide entry funnel + wide drift apex)
-            { pos: [-160, 0, -210], bank: -0.16, halfWidth: 17.0, zone: 3 },
-            { pos: [-30, 0, -160], bank: 0.10, halfWidth: 15.5, zone: 3 },
-            { pos: [0, 0, -80], bank: 0.0, halfWidth: 13.8, zone: 0 }
+            { pos: [0, 0, 0], bank: 0.0, halfWidth: 14.5, zone: 0 },
+            { pos: [0, 0, 130], bank: 0.0, halfWidth: 14.8, zone: 0 },
+            // 4-Node Constant-Radius Right Drift Bowl (R >= 67m)
+            { pos: [-55, 0, 240], bank: 0.12, halfWidth: 15.0, zone: 1 },
+            { pos: [-165, 0, 275], bank: 0.14, halfWidth: 15.2, zone: 1 },
+            { pos: [-265, 0, 200], bank: 0.14, halfWidth: 15.2, zone: 1 },
+            // Flowing S-Chicane transition
+            { pos: [-295, 0, 80], bank: 0.08, halfWidth: 14.8, zone: 2 },
+            { pos: [-265, 0, -45], bank: -0.08, halfWidth: 14.8, zone: 2 },
+            { pos: [-285, 0, -170], bank: 0.12, halfWidth: 15.0, zone: 2 },
+            // 4-Node Constant-Radius South Hairpin Bowl
+            { pos: [-215, 0, -270], bank: 0.16, halfWidth: 15.2, zone: 3 },
+            { pos: [-95, 0, -265], bank: 0.14, halfWidth: 15.2, zone: 3 },
+            { pos: [-15, 0, -175], bank: 0.08, halfWidth: 14.8, zone: 3 },
+            { pos: [0, 0, -85], bank: 0.0, halfWidth: 14.5, zone: 0 }
         ]
     },
 
@@ -65,17 +89,19 @@ RRR.TRACK_PRESETS = {
         name: 'TRACK 03 // ELEVATION & BANKING ROLLERCOASTER',
         subtitle: 'Steep +28m Climb, Blind Crest, Plunge & High-Banked Bowl',
         desc: 'Tests 3D surface normal alignment, uphill/downhill camera pitch tracking, and banked corner roll.',
-        roadHalfWidth: 14.0,
+        roadHalfWidth: 14.4,
         controlPoints: [
-            { pos: [0, 0, 0], bank: 0.0, halfWidth: 13.0, zone: 0 },
-            { pos: [0, 14, 130], bank: 0.0, halfWidth: 12.6, zone: 0 },
-            { pos: [0, 28, 250], bank: 0.0, halfWidth: 14.2, zone: 2 },
-            { pos: [-90, 18, 360], bank: 0.24, halfWidth: 16.5, zone: 2 },
-            { pos: [-220, -8, 310], bank: 0.28, halfWidth: 16.8, zone: 1 },
-            { pos: [-280, -14, 160], bank: -0.22, halfWidth: 15.8, zone: 1 },
-            { pos: [-220, 6, 20], bank: 0.18, halfWidth: 15.2, zone: 3 },
-            { pos: [-100, 12, -100], bank: 0.22, halfWidth: 16.2, zone: 3 },
-            { pos: [-15, 2, -90], bank: 0.08, halfWidth: 13.8, zone: 0 }
+            { pos: [0, 0, 0], bank: 0.0, halfWidth: 14.2, zone: 0 },
+            { pos: [0, 12, 130], bank: 0.0, halfWidth: 14.2, zone: 0 },
+            { pos: [0, 26, 260], bank: 0.0, halfWidth: 14.4, zone: 2 },
+            { pos: [-65, 22, 370], bank: 0.18, halfWidth: 14.8, zone: 2 },
+            { pos: [-185, 8, 395], bank: 0.22, halfWidth: 15.0, zone: 1 },
+            { pos: [-285, -8, 310], bank: 0.20, halfWidth: 15.0, zone: 1 },
+            { pos: [-320, -14, 180], bank: 0.14, halfWidth: 14.8, zone: 1 },
+            { pos: [-285, -4, 45], bank: 0.14, halfWidth: 14.6, zone: 3 },
+            { pos: [-210, 8, -80], bank: 0.18, halfWidth: 14.8, zone: 3 },
+            { pos: [-100, 10, -145], bank: 0.16, halfWidth: 14.6, zone: 3 },
+            { pos: [-15, 4, -95], bank: 0.06, halfWidth: 14.2, zone: 0 }
         ]
     },
 
@@ -84,27 +110,141 @@ RRR.TRACK_PRESETS = {
         name: 'TRACK 04 // FULL NAGAI BAYSHORE CIRCUIT',
         subtitle: 'Complete 4-Sector Circuit (Palms → Bass Tunnel → Bridge → Shibuya)',
         desc: 'The full race course with all 4 Track Vibe Zones, trackside DJ Jumbotrons, and 3 AI Rivals.',
-        roadHalfWidth: 13.5,
+        roadHalfWidth: 14.4,
         controlPoints: [
-            // Sector 0: Emerald Coast Palms (narrow fast straight into wide coastal sweep)
-            { pos: [0, 0, 0], bank: 0.0, halfWidth: 12.4, zone: 0 },
-            { pos: [0, 0, 140], bank: 0.0, halfWidth: 12.2, zone: 0 },
-            { pos: [-35, 2, 270], bank: 0.08, halfWidth: 14.8, zone: 0 },
-            { pos: [-130, 5, 360], bank: 0.14, halfWidth: 16.4, zone: 0 },
-            // Sector 1: Boiler Room Bass Tunnel (sweeping acoustic S-bends)
-            { pos: [-260, 2, 380], bank: 0.08, halfWidth: 15.2, zone: 1 },
-            { pos: [-380, -6, 320], bank: -0.12, halfWidth: 16.0, zone: 1 },
-            { pos: [-450, -10, 200], bank: 0.14, halfWidth: 16.6, zone: 1 },
-            { pos: [-440, -6, 60], bank: 0.10, halfWidth: 14.8, zone: 1 },
-            // Sector 2: Bayshore Suspension Bridge (high-speed decompression straight)
-            { pos: [-360, 8, -70], bank: -0.06, halfWidth: 13.6, zone: 2 },
-            { pos: [-270, 16, -185], bank: 0.0, halfWidth: 12.2, zone: 2 },
-            { pos: [-160, 16, -255], bank: 0.0, halfWidth: 12.2, zone: 2 },
-            { pos: [-45, 10, -250], bank: 0.08, halfWidth: 15.2, zone: 2 },
-            // Sector 3: Shibuya Neon Hairpins (wide entry funnel & smooth S-curve return to main straight)
-            { pos: [45, 4, -195], bank: 0.16, halfWidth: 16.6, zone: 3 },
-            { pos: [60, 0, -125], bank: 0.18, halfWidth: 17.0, zone: 3 },
-            { pos: [18, 0, -65], bank: 0.10, halfWidth: 15.4, zone: 3 }
+            // Sector 0: Emerald Coast Palms
+            { pos: [0, 0, 0], bank: 0.0, halfWidth: 14.2, zone: 0 },
+            { pos: [0, 0, 140], bank: 0.0, halfWidth: 14.2, zone: 0 },
+            { pos: [-40, 2, 275], bank: 0.08, halfWidth: 14.5, zone: 0 },
+            { pos: [-135, 5, 365], bank: 0.14, halfWidth: 14.8, zone: 0 },
+            // Sector 1: Boiler Room Bass Tunnel
+            { pos: [-265, 2, 385], bank: 0.08, halfWidth: 14.8, zone: 1 },
+            { pos: [-385, -6, 325], bank: -0.10, halfWidth: 14.8, zone: 1 },
+            { pos: [-455, -10, 200], bank: 0.14, halfWidth: 15.0, zone: 1 },
+            { pos: [-440, -6, 60], bank: 0.10, halfWidth: 14.6, zone: 1 },
+            // Sector 2: Bayshore Suspension Bridge
+            { pos: [-365, 8, -70], bank: -0.06, halfWidth: 14.4, zone: 2 },
+            { pos: [-275, 16, -185], bank: 0.0, halfWidth: 14.2, zone: 2 },
+            { pos: [-160, 16, -245], bank: 0.06, halfWidth: 14.4, zone: 2 },
+            // Sector 3: Shibuya Neon Sweeper return to Start/Finish
+            { pos: [-45, 8, -225], bank: 0.12, halfWidth: 14.8, zone: 3 },
+            { pos: [0, 2, -115], bank: 0.06, halfWidth: 14.4, zone: 3 }
+        ]
+    },
+
+    wangan_cyberport: {
+        id: 'wangan_cyberport',
+        name: 'TRACK 05 // WANGAN CYBER-PORT & CONTAINER HELIX',
+        subtitle: 'Container Crane Terminal + 270° Spiral Helix (+34m) + Submerged Reactor + 90m Ferris Wheel',
+        desc: 'Complex harbor circuit featuring towering Port Container Gantry Cranes, a climbing 270° Spiral Viaduct Helix wrapped around a 58m Radar Spire, a -16m Submerged Reactor Tube, an Automatic Toll Plaza, and a 90m Neon Ferris Wheel.',
+        roadHalfWidth: 14.8,
+        heroSetPieces: [
+            { type: 'HELIX_RADAR_SPIRE', pos: [-225, 0, 655] },
+            { type: 'COSMO_FERRIS_WHEEL', pos: [-195, 0, -310], yaw: 0.35 }
+        ],
+        controlPoints: [
+            // Sector 0: Daikoku Container Crane Terminal & High-Speed Dock Chicane
+            { pos: [0, 0, 0], bank: 0.0, halfWidth: 14.5, zone: 0, setPiece: 'CRANE_PORT' },
+            { pos: [0, 0, 160], bank: 0.0, halfWidth: 14.5, zone: 0, setPiece: 'CRANE_PORT' },
+            { pos: [0, 0, 320], bank: 0.0, halfWidth: 14.5, zone: 0, setPiece: 'CRANE_PORT' },
+            { pos: [-35, 0, 470], bank: 0.08, halfWidth: 14.8, zone: 0, setPiece: 'CRANE_PORT' },
+            { pos: [-20, 4, 620], bank: -0.08, halfWidth: 14.8, zone: 0, setPiece: 'CRANE_PORT' },
+            // Sector 2: 270° Climbing Spiral Overpass Helix (+12m -> +34m, R >= 93m) around Central Radar Spire
+            { pos: [-90, 12, 750], bank: 0.16, halfWidth: 15.0, zone: 2, setPiece: 'HELIX_TOWER' },
+            { pos: [-215, 22, 810], bank: 0.20, halfWidth: 15.2, zone: 2, setPiece: 'HELIX_TOWER' },
+            { pos: [-335, 30, 745], bank: 0.22, halfWidth: 15.2, zone: 2, setPiece: 'HELIX_TOWER' },
+            { pos: [-385, 34, 615], bank: 0.18, halfWidth: 15.0, zone: 2, setPiece: 'HELIX_TOWER' },
+            // High-Altitude Cable-Stayed Wangan Skybridge Straight
+            { pos: [-365, 30, 460], bank: 0.06, halfWidth: 14.8, zone: 2 },
+            { pos: [-345, 20, 300], bank: 0.0, halfWidth: 14.5, zone: 2 },
+            // Sector 1: Plunge into Submerged Harbor Reactor Tube (-16m)
+            { pos: [-355, 6, 140], bank: 0.08, halfWidth: 14.8, zone: 1, setPiece: 'REACTOR_TUBE' },
+            { pos: [-410, -10, -10], bank: 0.12, halfWidth: 15.0, zone: 1, setPiece: 'REACTOR_TUBE' },
+            { pos: [-445, -16, -165], bank: 0.12, halfWidth: 15.0, zone: 1, setPiece: 'REACTOR_TUBE' },
+            { pos: [-415, -14, -315], bank: 0.16, halfWidth: 15.0, zone: 1, setPiece: 'REACTOR_TUBE' },
+            // Sector 3: Highway Automatic Toll Plaza & 90m Neon Ferris Wheel Sweeper
+            { pos: [-315, -8, -420], bank: 0.16, halfWidth: 15.0, zone: 3, setPiece: 'TOLL_PLAZA' },
+            { pos: [-180, -2, -430], bank: 0.16, halfWidth: 15.0, zone: 3, setPiece: 'FERRIS_WHEEL' },
+            { pos: [-70, 0, -340], bank: 0.14, halfWidth: 14.8, zone: 3, setPiece: 'FERRIS_WHEEL' },
+            { pos: [-15, 0, -210], bank: 0.08, halfWidth: 14.6, zone: 3, setPiece: 'TOLL_PLAZA' },
+            { pos: [0, 0, -95], bank: 0.0, halfWidth: 14.5, zone: 0, setPiece: 'CRANE_PORT' }
+        ]
+    },
+
+    hakone_canyon: {
+        id: 'hakone_canyon',
+        name: 'TRACK 06 // HAKONE NEON CANYON & LASER CATHEDRAL',
+        subtitle: '+44m Wind-Farm Ridge Ascent + Deep-Space Dish Summit + 3D Laser Pyramid + Gorge Viaduct',
+        desc: 'Mountain touge pass climbing +44m past spinning Coastal Wind Turbines and a Deep-Space Parabolic Dish Array before plunging through a 3D Wireframe Laser Cathedral into a high-banked canyon viaduct.',
+        roadHalfWidth: 14.6,
+        heroSetPieces: [
+            { type: 'LASER_PYRAMID_MONOLITH', pos: [-505, 8, 100] },
+            { type: 'SUMMIT_OBSERVATORY_DOME', pos: [-265, 44, 650] }
+        ],
+        controlPoints: [
+            // Sector 0: Foothills & Coastal Wind Turbine Ridge Ascent (0m -> +38m)
+            { pos: [0, 0, 0], bank: 0.0, halfWidth: 14.4, zone: 0, setPiece: 'WIND_TURBINES' },
+            { pos: [0, 6, 150], bank: 0.0, halfWidth: 14.4, zone: 0, setPiece: 'WIND_TURBINES' },
+            { pos: [-45, 16, 295], bank: 0.10, halfWidth: 14.6, zone: 0, setPiece: 'WIND_TURBINES' },
+            { pos: [-35, 28, 445], bank: -0.10, halfWidth: 14.6, zone: 0, setPiece: 'WIND_TURBINES' },
+            { pos: [-115, 38, 575], bank: 0.16, halfWidth: 14.8, zone: 2, setPiece: 'SOLAR_DISH' },
+            // Sector 2: +44m Summit Observatory & Deep-Space Parabolic Dish Array
+            { pos: [-255, 44, 625], bank: 0.18, halfWidth: 15.0, zone: 2, setPiece: 'SOLAR_DISH' },
+            { pos: [-395, 40, 565], bank: 0.16, halfWidth: 14.8, zone: 2, setPiece: 'SOLAR_DISH' },
+            // Sector 1: High-Speed Plunge through the 3D Wireframe Laser Pyramid Cathedral
+            { pos: [-495, 28, 435], bank: 0.12, halfWidth: 14.8, zone: 1, setPiece: 'LASER_CATHEDRAL' },
+            { pos: [-540, 16, 280], bank: 0.08, halfWidth: 14.8, zone: 1, setPiece: 'LASER_CATHEDRAL' },
+            { pos: [-515, 8, 125], bank: -0.10, halfWidth: 14.8, zone: 1, setPiece: 'LASER_CATHEDRAL' },
+            { pos: [-545, 4, -30], bank: 0.10, halfWidth: 14.8, zone: 1, setPiece: 'LASER_CATHEDRAL' },
+            // Sector 3: Hakone Canyon Gorge Viaduct Curves (Constant-Radius Multi-Node Bowl, R >= 109m)
+            { pos: [-510, 0, -185], bank: 0.16, halfWidth: 15.0, zone: 3, setPiece: 'GORGE_VIADUCT' },
+            { pos: [-415, -6, -310], bank: 0.18, halfWidth: 15.0, zone: 3, setPiece: 'GORGE_VIADUCT' },
+            { pos: [-280, -10, -375], bank: 0.16, halfWidth: 15.0, zone: 3, setPiece: 'GORGE_VIADUCT' },
+            { pos: [-145, -8, -345], bank: 0.16, halfWidth: 14.8, zone: 3, setPiece: 'GORGE_VIADUCT' },
+            { pos: [-45, -4, -240], bank: 0.12, halfWidth: 14.6, zone: 0, setPiece: 'WIND_TURBINES' },
+            { pos: [-5, 0, -115], bank: 0.04, halfWidth: 14.4, zone: 0, setPiece: 'WIND_TURBINES' }
+        ]
+    },
+
+    odaiba_megaplex: {
+        id: 'odaiba_megaplex',
+        name: 'TRACK 07 // ODAIBA MEGA-PLEX & FIGURE-8 CROSSOVER',
+        subtitle: 'Grade-Separated 3D Figure-8 (+28m Skyway Bridge over -12m Subwoofer Trench) + Megasphere + Bowling Pin',
+        desc: 'True 3D Figure-8 circuit! Rockets through Shibuya Skybridges and the Giant Neon Bowling Pin Plaza, climbs +28m past the suspended Odaiba Broadcast Megasphere to cross OVER the lower track, sweeps around the Nagai Beach Resort, and dives -12m through the Subwoofer Trench UNDER the bridge.',
+        roadHalfWidth: 14.6,
+        heroSetPieces: [
+            { type: 'ODAIBA_MEGASPHERE_TOWER', pos: [-250, 0, 210] },
+            { type: 'GIANT_BOWLING_PIN_PLAZA', pos: [-52, 0, 215] },
+            { type: 'NAGAI_RESORT_HOTEL', pos: [-465, 0, -35] }
+        ],
+        controlPoints: [
+            // Sector 3: Shibuya Skybridge Canyon & Giant Neon Bowling Pin Plaza
+            { pos: [0, 0, 0], bank: 0.0, halfWidth: 14.5, zone: 3, setPiece: 'SHIBUYA_SKYBRIDGE' },
+            { pos: [0, 0, 145], bank: 0.0, halfWidth: 14.5, zone: 3, setPiece: 'SHIBUYA_SKYBRIDGE' },
+            { pos: [0, 6, 295], bank: 0.0, halfWidth: 14.6, zone: 3, setPiece: 'BOWLING_PIN_PLAZA' },
+            { pos: [-55, 16, 425], bank: 0.16, halfWidth: 14.8, zone: 3, setPiece: 'SHIBUYA_SKYBRIDGE' },
+            // Sector 2: North Loop Climbing to the +28m Odaiba Megasphere Skyway Crossover
+            { pos: [-175, 24, 445], bank: 0.18, halfWidth: 15.0, zone: 2, setPiece: 'ODAIBA_MEGASPHERE' },
+            { pos: [-240, 28, 345], bank: 0.10, halfWidth: 14.8, zone: 2, setPiece: 'ODAIBA_MEGASPHERE' },
+            // UPPER CROSSOVER BRIDGE (+28m elevation crossing NE -> SW at [-250, 210])
+            { pos: [-250, 28, 210], bank: 0.0, halfWidth: 14.6, zone: 2, setPiece: 'ODAIBA_MEGASPHERE' },
+            // Sector 0: Descending into the Hiroshi Nagai Sunset Beach Resort & Pool Boardwalk
+            { pos: [-275, 20, 65], bank: -0.08, halfWidth: 14.8, zone: 0, setPiece: 'NAGAI_RESORT' },
+            { pos: [-355, 8, -75], bank: -0.14, halfWidth: 14.8, zone: 0, setPiece: 'NAGAI_RESORT' },
+            { pos: [-485, 2, -125], bank: -0.18, halfWidth: 15.0, zone: 0, setPiece: 'NAGAI_RESORT' },
+            { pos: [-590, 0, -25], bank: -0.18, halfWidth: 15.0, zone: 0, setPiece: 'NAGAI_RESORT' },
+            // Sector 1: Diving into the -12m Subterranean Boiler Room Subwoofer Trench
+            { pos: [-600, -4, 125], bank: -0.16, halfWidth: 14.8, zone: 1, setPiece: 'SUBWOOFER_TRENCH' },
+            { pos: [-515, -10, 250], bank: -0.16, halfWidth: 14.8, zone: 1, setPiece: 'SUBWOOFER_TRENCH' },
+            { pos: [-375, -12, 265], bank: -0.10, halfWidth: 14.6, zone: 1, setPiece: 'SUBWOOFER_TRENCH' },
+            // LOWER CROSSOVER TRENCH (-12m elevation crossing NW -> SE at [-250, 210], 40m below Upper Bridge!)
+            { pos: [-250, -12, 210], bank: 0.0, halfWidth: 14.6, zone: 1, setPiece: 'SUBWOOFER_TRENCH' },
+            { pos: [-215, -8, 75], bank: -0.10, halfWidth: 14.8, zone: 1, setPiece: 'SUBWOOFER_TRENCH' },
+            // Sector 3: 4-Node Constant-Radius South Bowl returning to Start/Finish (R >= 58m)
+            { pos: [-215, -4, -55], bank: -0.14, halfWidth: 14.8, zone: 3, setPiece: 'BOWLING_PIN_PLAZA' },
+            { pos: [-160, -2, -160], bank: -0.16, halfWidth: 15.0, zone: 3, setPiece: 'BOWLING_PIN_PLAZA' },
+            { pos: [-55, 0, -160], bank: -0.14, halfWidth: 14.8, zone: 3, setPiece: 'SHIBUYA_SKYBRIDGE' },
+            { pos: [0, 0, -75], bank: 0.0, halfWidth: 14.5, zone: 3, setPiece: 'SHIBUYA_SKYBRIDGE' }
         ]
     }
 };
@@ -121,21 +261,11 @@ RRR.TrackSpline = class TrackSpline {
         this.activePreset = preset;
         this.roadHalfWidth = preset.roadHalfWidth || 13.5;
         this.controlPoints = preset.controlPoints;
+        this.heroSetPieces = preset.heroSetPieces || [];
         this.totalLength = 0;
         this.samples = [];
         this.bounds = { minX: Infinity, maxX: -Infinity, minZ: Infinity, maxZ: -Infinity };
         this.buildSplineTable();
-    }
-
-    catmullRom(p0, p1, p2, p3, t) {
-        const t2 = t * t;
-        const t3 = t2 * t;
-        return 0.5 * (
-            (2 * p1) +
-            (-p0 + p2) * t +
-            (2 * p0 - 5 * p1 + 4 * p2 - p3) * t2 +
-            (-p0 + 3 * p1 - 3 * p2 + p3) * t3
-        );
     }
 
     /**
@@ -228,7 +358,8 @@ RRR.TrackSpline = class TrackSpline {
                 pos: evalPt.pos,
                 bank: evalPt.bank,
                 halfWidth: evalPt.halfWidth,
-                zone: cp1.zone !== undefined ? cp1.zone : (Math.floor((k / rawCount) * 4) % 4)
+                zone: cp1.zone !== undefined ? cp1.zone : (Math.floor((k / rawCount) * 4) % 4),
+                setPiece: cp1.setPiece || null
             };
 
             if (k > 0) {
@@ -251,9 +382,11 @@ RRR.TrackSpline = class TrackSpline {
         );
         this.totalLength = cumDist[rawCount];
 
-        // 2. Resample strictly uniform 3D arc-length intervals across this.numSamples = 720
+        // 2. Enforce Constant Physical Sample Spacing (ds = 2.50m across all tracks)
+        const std = RRR.MAP_SPEED_STANDARDS || { targetSampleSpacingMeters: 2.50, minAbsoluteTurnRadiusMeters: 54.0, minTurnRadiusRatioToHalfWidth: 3.6 };
+        this.numSamples = Math.max(480, Math.round(this.totalLength / (std.targetSampleSpacingMeters || 2.50)));
         const N = this.numSamples;
-        const uniformPts = new Array(N);
+        let uniformPts = new Array(N);
 
         for (let i = 0; i < N; i++) {
             const targetS = (i / N) * this.totalLength;
@@ -276,19 +409,99 @@ RRR.TrackSpline = class TrackSpline {
             const y = pA.pos[1] + (pB.pos[1] - pA.pos[1]) * alpha;
             const z = pA.pos[2] + (pB.pos[2] - pA.pos[2]) * alpha;
 
-            if (x < this.bounds.minX) this.bounds.minX = x;
-            if (x > this.bounds.maxX) this.bounds.maxX = x;
-            if (z < this.bounds.minZ) this.bounds.minZ = z;
-            if (z > this.bounds.maxZ) this.bounds.maxZ = z;
-
             uniformPts[i] = {
                 distance: targetS,
                 pos: [x, y, z],
                 bank: pA.bank + (pB.bank - pA.bank) * alpha,
                 halfWidth: Math.max(10.0, pA.halfWidth + (pB.halfWidth - pA.halfWidth) * alpha),
-                zone: pA.zone
+                zone: pA.zone,
+                setPiece: pA.setPiece || null
             };
         }
+
+        // 2B. Automatic Minimum Turn Radius Relaxation Pass (guarantees R_min >= 54m / 3.6 * halfWidth)
+        const minAllowedR = Math.max(
+            std.minAbsoluteTurnRadiusMeters || 54.0,
+            this.roadHalfWidth * (std.minTurnRadiusRatioToHalfWidth || 3.6)
+        );
+        const maxAllowedKappa = 1.0 / minAllowedR;
+        for (let iter = 0; iter < 28; iter++) {
+            let relaxedAny = false;
+            const nextXZ = uniformPts.map((pt) => [pt.pos[0], pt.pos[2]]);
+            for (let i = 0; i < N; i++) {
+                const pPrev = uniformPts[(i - 2 + N) % N].pos;
+                const pCurr = uniformPts[i].pos;
+                const pNext = uniformPts[(i + 2) % N].pos;
+                const v1x = pCurr[0] - pPrev[0], v1z = pCurr[2] - pPrev[2];
+                const v2x = pNext[0] - pCurr[0], v2z = pNext[2] - pCurr[2];
+                const d1 = Math.hypot(v1x, v1z) || 1.0;
+                const d2 = Math.hypot(v2x, v2z) || 1.0;
+                const sinTheta = Math.abs(v1x * v2z - v1z * v2x) / (d1 * d2);
+                const localKappa = sinTheta / (0.5 * (d1 + d2));
+                if (localKappa > maxAllowedKappa) {
+                    const n1 = uniformPts[(i - 1 + N) % N].pos;
+                    const n2 = uniformPts[(i + 1) % N].pos;
+                    nextXZ[i][0] = pCurr[0] * 0.5 + (n1[0] + n2[0]) * 0.25;
+                    nextXZ[i][1] = pCurr[2] * 0.5 + (n1[2] + n2[2]) * 0.25;
+                    relaxedAny = true;
+                }
+            }
+            if (!relaxedAny) break;
+            for (let i = 0; i < N; i++) {
+                uniformPts[i].pos[0] = nextXZ[i][0];
+                uniformPts[i].pos[2] = nextXZ[i][1];
+            }
+        }
+
+        // 2C. Post-Relaxation Exact 3D Arc-Length Re-Equalization Pass (ensures 100% uniform ds in corners!)
+        const cumDist2 = new Float64Array(N + 1);
+        cumDist2[0] = 0.0;
+        for (let i = 1; i < N; i++) {
+            const a = uniformPts[i - 1].pos;
+            const b = uniformPts[i].pos;
+            cumDist2[i] = cumDist2[i - 1] + Math.hypot(b[0] - a[0], b[1] - a[1], b[2] - a[2]);
+        }
+        cumDist2[N] = cumDist2[N - 1] + Math.hypot(
+            uniformPts[0].pos[0] - uniformPts[N - 1].pos[0],
+            uniformPts[0].pos[1] - uniformPts[N - 1].pos[1],
+            uniformPts[0].pos[2] - uniformPts[N - 1].pos[2]
+        );
+        this.totalLength = cumDist2[N];
+
+        const reEqualizedPts = new Array(N);
+        for (let i = 0; i < N; i++) {
+            const targetS = (i / N) * this.totalLength;
+            let lo = 0;
+            let hi = N - 1;
+            while (lo < hi) {
+                const mid = (lo + hi + 1) >> 1;
+                if (cumDist2[mid] <= targetS) lo = mid;
+                else hi = mid - 1;
+            }
+            const segLen = cumDist2[lo + 1] - cumDist2[lo];
+            const alpha = segLen > 1e-8 ? (targetS - cumDist2[lo]) / segLen : 0.0;
+            const pA = uniformPts[lo];
+            const pB = uniformPts[(lo + 1) % N];
+
+            const x = pA.pos[0] + (pB.pos[0] - pA.pos[0]) * alpha;
+            const y = pA.pos[1] + (pB.pos[1] - pA.pos[1]) * alpha;
+            const z = pA.pos[2] + (pB.pos[2] - pA.pos[2]) * alpha;
+
+            if (x < this.bounds.minX) this.bounds.minX = x;
+            if (x > this.bounds.maxX) this.bounds.maxX = x;
+            if (z < this.bounds.minZ) this.bounds.minZ = z;
+            if (z > this.bounds.maxZ) this.bounds.maxZ = z;
+
+            reEqualizedPts[i] = {
+                distance: targetS,
+                pos: [x, y, z],
+                bank: pA.bank + (pB.bank - pA.bank) * alpha,
+                halfWidth: pA.halfWidth + (pB.halfWidth - pA.halfWidth) * alpha,
+                zone: pA.zone,
+                setPiece: pA.setPiece || null
+            };
+        }
+        uniformPts = reEqualizedPts;
 
         // 3. Compute unit tangent forward vectors, yaw, and pitch at uniform arc-length samples
         const ds = this.totalLength / N;
@@ -344,26 +557,35 @@ RRR.TrackSpline = class TrackSpline {
             const bank = Math.abs(smoothBanks[i]) < 1e-6 ? 0.0 : smoothBanks[i];
             const kappa = smoothKappa[i];
 
-            // Right-handed Right vector: forward x worldUp(0, 1, 0) = [-forward.z, 0, forward.x]
+            // Right-handed unbanked orthonormal frame [right0, up0, forward]
             let rx = -forward[2];
             let rz = forward[0];
             const rLen = Math.hypot(rx, rz) || 1.0;
             rx /= rLen;
             rz /= rLen;
 
+            // up0 = right0 x forward (unit length since right0 _|_ forward)
+            let u0x = -rz * forward[1];
+            let u0y = rz * forward[0] - rx * forward[2];
+            let u0z = rx * forward[1];
+            const u0Len = Math.hypot(u0x, u0y, u0z) || 1.0;
+            u0x /= u0Len;
+            u0y /= u0Len;
+            u0z /= u0Len;
+
+            // Rotate right0 and up0 around forward by bank angle so frame stays strictly orthonormal on banked slopes
             const cosB = Math.cos(bank);
             const sinB = Math.sin(bank);
-            const bankedRight = [rx * cosB, sinB, rz * cosB];
-
-            const up = [
-                bankedRight[1] * forward[2] - bankedRight[2] * forward[1],
-                bankedRight[2] * forward[0] - bankedRight[0] * forward[2],
-                bankedRight[0] * forward[1] - bankedRight[1] * forward[0]
+            const bankedRight = [
+                rx * cosB + u0x * sinB,
+                u0y * sinB,
+                rz * cosB + u0z * sinB
             ];
-            const uLen = Math.hypot(up[0], up[1], up[2]) || 1.0;
-            up[0] /= uLen;
-            up[1] /= uLen;
-            up[2] /= uLen;
+            const up = [
+                -rx * sinB + u0x * cosB,
+                u0y * cosB,
+                -rz * sinB + u0z * cosB
+            ];
 
             const absKappa = Math.abs(kappa);
             const apexSide = kappa < -0.0018 ? -1 : (kappa > 0.0018 ? 1 : 0);
@@ -386,7 +608,8 @@ RRR.TrackSpline = class TrackSpline {
                 apexSide: apexSide,
                 chevronIntensity: chevronIntensity,
                 isCornerEntryGate: 0,
-                zone: uniformPts[i].zone
+                zone: uniformPts[i].zone,
+                setPiece: uniformPts[i].setPiece || null
             };
         }
 
@@ -450,6 +673,7 @@ RRR.TrackSpline = class TrackSpline {
             t: wrapped,
             distance: wrapped * this.totalLength,
             zone: s0.zone,
+            setPiece: s0.setPiece || null,
             bank: s0.bank + (s1.bank - s0.bank) * frac,
             curvatureRadPerMeter: curvatureRadPerMeter,
             curvature: curvature,
@@ -467,57 +691,6 @@ RRR.TrackSpline = class TrackSpline {
             forward: forward,
             right: right,
             up: up
-        };
-    }
-
-    getNearestPoint(pos, hintIndex = -1) {
-        let bestIdx = 0;
-        let bestDistSq = Infinity;
-
-        if (hintIndex >= 0) {
-            const window = 40;
-            for (let offset = -window; offset <= window; offset++) {
-                const idx = (hintIndex + offset + this.numSamples) % this.numSamples;
-                const s = this.samples[idx];
-                const dx = pos[0] - s.pos[0];
-                const dz = pos[2] - s.pos[2];
-                const d2 = dx * dx + dz * dz;
-                if (d2 < bestDistSq) {
-                    bestDistSq = d2;
-                    bestIdx = idx;
-                }
-            }
-        } else {
-            for (let i = 0; i < this.numSamples; i++) {
-                const s = this.samples[i];
-                const dx = pos[0] - s.pos[0];
-                const dz = pos[2] - s.pos[2];
-                const d2 = dx * dx + dz * dz;
-                if (d2 < bestDistSq) {
-                    bestDistSq = d2;
-                    bestIdx = i;
-                }
-            }
-        }
-
-        const discreteSample = this.samples[bestIdx];
-        const relX = pos[0] - discreteSample.pos[0];
-        const relZ = pos[2] - discreteSample.pos[2];
-
-        const alongMeters = relX * discreteSample.forward[0] + relZ * discreteSample.forward[2];
-        const continuousT = ((discreteSample.t + (alongMeters / this.totalLength)) % 1.0 + 1.0) % 1.0;
-        const interpSample = this.getSampleAtNormalizedT(continuousT);
-
-        const exactRelX = pos[0] - interpSample.pos[0];
-        const exactRelZ = pos[2] - interpSample.pos[2];
-        const lateralOffset = exactRelX * interpSample.right[0] + exactRelZ * interpSample.right[2];
-
-        return {
-            sampleIndex: bestIdx,
-            t: continuousT,
-            sample: interpSample,
-            lateralOffset: lateralOffset,
-            distSq: bestDistSq
         };
     }
 };
@@ -541,19 +714,65 @@ RRR.WORLD_MAP_GRAPH = {
             coords: [42, 54],
             desc: 'Elevated coastal expressway split.'
         },
+        jct_daikoku_pier: {
+            id: 'jct_daikoku_pier',
+            name: 'DAIKOKU HARBOR JUNCTION',
+            type: 'JUNCTION',
+            coords: [62, 48],
+            desc: 'Container terminal highway connector.'
+        },
+        jct_mountain_pass: {
+            id: 'jct_mountain_pass',
+            name: 'HAKONE SKYLINE TOLLGATE',
+            type: 'JUNCTION',
+            coords: [30, 32],
+            desc: 'Foothills ascent toward the summit observatory.'
+        },
         venue_emerald_coast: {
             id: 'venue_emerald_coast',
             name: 'VENUE 01 // EMERALD BAY CIRCUIT',
             type: 'VENUE',
+            trackPreset: 'nagai_bayshore',
             dj: 'DJ KINETIX (138 BPM)',
             startZone: 0,
             coords: [68, 30],
             desc: 'Hiroshi Nagai palm boulevards, acoustic bass tunnel & suspension bridge.'
         },
+        venue_wangan_port: {
+            id: 'venue_wangan_port',
+            name: 'VENUE 02 // WANGAN CYBER-PORT & HELIX',
+            type: 'VENUE',
+            trackPreset: 'wangan_cyberport',
+            dj: 'DJ KINETIX // HARBOR DUB SET',
+            startZone: 0,
+            coords: [84, 52],
+            desc: 'Container gantry cranes, 270° spiral viaduct helix (+34m), submerged reactor tube & 90m Ferris wheel.'
+        },
+        venue_hakone_canyon: {
+            id: 'venue_hakone_canyon',
+            name: 'VENUE 03 // HAKONE LASER CANYON',
+            type: 'VENUE',
+            trackPreset: 'hakone_canyon',
+            dj: 'DJ KINETIX // 303 LASER SET',
+            startZone: 0,
+            coords: [22, 14],
+            desc: '+44m wind-farm ascent, deep-space dish summit, 3D wireframe laser cathedral & 5-hairpin gorge viaduct.'
+        },
+        venue_odaiba_megaplex: {
+            id: 'venue_odaiba_megaplex',
+            name: 'VENUE 04 // ODAIBA FIGURE-8 MEGAPLEX',
+            type: 'VENUE',
+            trackPreset: 'odaiba_megaplex',
+            dj: 'DJ KINETIX // VIP FESTIVAL SET',
+            startZone: 3,
+            coords: [54, 18],
+            desc: '3D Figure-8 crossover (+28m Odaiba Megasphere bridge over -12m Subwoofer Trench), Nagai Beach Resort & Bowling Pin Plaza.'
+        },
         venue_boiler_tunnel: {
             id: 'venue_boiler_tunnel',
-            name: 'VENUE 02 // BOILER ROOM UNDERGROUND',
+            name: 'VENUE 05 // BOILER ROOM UNDERGROUND',
             type: 'VENUE',
+            trackPreset: 'nagai_bayshore',
             dj: 'DJ KINETIX // ACID SET',
             startZone: 1,
             coords: [78, 68],
@@ -561,12 +780,13 @@ RRR.WORLD_MAP_GRAPH = {
         },
         venue_shibuya_skyway: {
             id: 'venue_shibuya_skyway',
-            name: 'VENUE 03 // SHIBUYA NEON SKYWAY',
+            name: 'VENUE 06 // SHIBUYA NEON SKYWAY',
             type: 'VENUE',
+            trackPreset: 'odaiba_megaplex',
             dj: 'DJ KINETIX // VIP REMIX',
             startZone: 3,
             coords: [48, 20],
-            desc: 'Midnight urban hairpins and elevated highway signs.'
+            desc: 'Midnight urban skybridges, Giant Neon Bowling Pin Plaza, and elevated highway signs.'
         }
     },
     edges: [
@@ -577,7 +797,7 @@ RRR.WORLD_MAP_GRAPH = {
             landmark: {
                 id: 'wind_turbines',
                 title: 'COASTAL WIND TURBINES // ROUTE 134',
-                subtitle: '3.2 KM TO VENUE — BASS FREQUENCY RISING',
+                subtitle: '3.2 KM TO INTERCHANGE — BASS FREQUENCY RISING',
                 skyTop: '#0a4f9e',
                 skyHorizon: '#ff7b9c',
                 type: 'TURBINES'
@@ -594,6 +814,71 @@ RRR.WORLD_MAP_GRAPH = {
                 skyTop: '#14246b',
                 skyHorizon: '#ff6e54',
                 type: 'BRIDGE'
+            }
+        },
+        {
+            from: 'jct_bayshore',
+            to: 'jct_daikoku_pier',
+            weight: 3.6,
+            landmark: {
+                id: 'suspension_bridge_east',
+                title: 'BAYSHORE SUSPENSION BRIDGE // EAST DECK',
+                subtitle: 'CROSSING TOKYO BAY CHANNEL TOWARD DAIKOKU PIER',
+                skyTop: '#102566',
+                skyHorizon: '#ff784f',
+                type: 'BRIDGE'
+            }
+        },
+        {
+            from: 'jct_daikoku_pier',
+            to: 'venue_wangan_port',
+            weight: 4.2,
+            landmark: {
+                id: 'port_cranes',
+                title: 'DAIKOKU CONTAINER GANTRY CRANES // BERTH 09',
+                subtitle: 'ENTERING WANGAN CYBER-PORT & 270° HELIX TERMINAL',
+                skyTop: '#071b42',
+                skyHorizon: '#00f5d4',
+                type: 'CRANES'
+            }
+        },
+        {
+            from: 'home_base',
+            to: 'jct_mountain_pass',
+            weight: 4.0,
+            landmark: {
+                id: 'ridge_turbines',
+                title: 'FOOTHILLS WIND TURBINE RIDGE // ROUTE 01',
+                subtitle: 'CLIMBING TOWARD HAKONE SKYLINE TOLLGATE',
+                skyTop: '#0c3b80',
+                skyHorizon: '#ff6e7f',
+                type: 'TURBINES'
+            }
+        },
+        {
+            from: 'jct_mountain_pass',
+            to: 'venue_hakone_canyon',
+            weight: 5.4,
+            landmark: {
+                id: 'laser_pyramid_pass',
+                title: 'SUMMIT RADIO DISHES & LASER CATHEDRAL PORTAL',
+                subtitle: 'DESCENDING INTO HAKONE NEON CANYON SWITCHBACKS',
+                skyTop: '#050214',
+                skyHorizon: '#39ff14',
+                type: 'LASER_PYRAMID'
+            }
+        },
+        {
+            from: 'jct_bayshore',
+            to: 'venue_odaiba_megaplex',
+            weight: 4.8,
+            landmark: {
+                id: 'odaiba_megasphere',
+                title: 'ODAIBA TELEPORT MEGASPHERE & COSMO WHEEL',
+                subtitle: 'APPROACHING 3D FIGURE-8 CROSSOVER EXPRESSWAY',
+                skyTop: '#090d38',
+                skyHorizon: '#ff2a85',
+                type: 'MEGASPHERE'
             }
         },
         {

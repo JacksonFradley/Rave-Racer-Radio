@@ -14,25 +14,542 @@
     <canvas id="impact-vfx-canvas" class="hidden"></canvas>
 
     <!-- ========================================================================
-         DEVELOPER STARTING MENU OVERLAY (Toggleable anytime via ESC)
+         ARCADE ATTRACT MODE & TITLE SCREEN OVERLAY
          ======================================================================== -->
-    <div id="dev-start-menu" class="modal-overlay hud-interactive">
+    <div id="arcade-title-overlay" class="arcade-title-overlay hud-interactive">
+        <div class="attract-top-bar">
+            <span class="attract-credit-pill">🪙 FREE PLAY // SYSTEM 22 × REKORDBOX 7</span>
+            <span class="attract-demo-pill" id="attract-camera-lbl">🎥 LIVE ATTRACT DEMO // NAGAI BAYSHORE</span>
+            <span class="attract-pad-pill" id="attract-gamepad-pill">⌨️ KEYBOARD / 🎮 GAMEPAD READY</span>
+        </div>
+
+        <div class="attract-hero-card">
+            <div class="attract-eyebrow">138 BPM BOILER ROOM × HIROSHI NAGAI × RIDGE RACER TYPE 4</div>
+            <h1 class="attract-logo">RAVE RACER <span>REMIX</span></h1>
+            <div class="attract-tagline">MOTION ↔ COLOR ↔ MUSIC TRIAD COUPLING ENGINE</div>
+
+            <button type="button" class="attract-start-btn" id="btn-attract-press-start">
+                ⚡ INSERT COIN // PRESS START (ENTER) ▶
+            </button>
+
+            <div class="attract-mode-grid">
+                <button type="button" class="attract-mode-card card-gold" id="btn-attract-gp">
+                    <span class="amc-icon">🏆</span>
+                    <strong>ARCADE GRAND PRIX</strong>
+                    <small>4-Car Grid • R4 Boost Launch • 3 Laps</small>
+                </button>
+                <button type="button" class="attract-mode-card card-cyan" id="btn-attract-garage">
+                    <span class="amc-icon">🔧</span>
+                    <strong>360° RAVE GARAGE</strong>
+                    <small>6 JDM Chassis • 9-Zone Paint &amp; Kitbash</small>
+                </button>
+                <button type="button" class="attract-mode-card card-magenta" id="btn-attract-dj">
+                    <span class="amc-icon">🎧</span>
+                    <strong>REKORDBOX DJ BOOTH</strong>
+                    <small>Dual CDJ-3000 • 3-Stem AI DJ Kinetix</small>
+                </button>
+                <button type="button" class="attract-mode-card card-volt" id="btn-attract-map">
+                    <span class="amc-icon">🗺️</span>
+                    <strong>TOKYO HIGHWAY MAP</strong>
+                    <small>Dijkstra Route Solver &amp; Drive-Over</small>
+                </button>
+            </div>
+        </div>
+
+        <div class="attract-bottom-ticker">
+            <span>🎵 121 TRACKS INDEXED IN /MUSIC</span>
+            <span>•</span>
+            <span>🔥 3-TIER R4 COUNTER-STEER LATCH DRIFT</span>
+            <span>•</span>
+            <span>🎨 8 FLUID 2D VIBE LUT PALETTES</span>
+            <span>•</span>
+            <span>PRESS [ENTER] OR [SPACE] TO LAUNCH</span>
+        </div>
+    </div>
+
+    <!-- ========================================================================
+         DEVELOPER STARTING MENU & GARAGE CUSTOMIZATION HUB (Toggleable via ESC / G)
+         ======================================================================== -->
+    <div id="dev-start-menu" class="modal-overlay hidden hud-interactive">
         <div class="dev-menu-window">
             <div class="dev-menu-header">
                 <div>
-                    <div class="dev-menu-eyebrow">DEVELOPMENT SANDBOX &amp; DIAGNOSTIC SUITE // BUILD 0.2</div>
-                    <h1>RAVE RACER REMIX — MECHANIC TROUBLESHOOTING HUB</h1>
+                    <div class="dev-menu-eyebrow">JET SET RADIO × AUTO MODELLISTA × R4 // BUILD 0.4</div>
+                    <h1>RAVE RACER REMIX — MAIN MENU &amp; GARAGE</h1>
                 </div>
-                <button class="arcade-btn btn-gold hidden" id="btn-resume-from-menu">▶ CLOSE MENU &amp; DRIVE (ESC)</button>
+                <div class="dev-menu-tabs">
+                    <button class="arcade-btn active" id="tab-btn-garage" data-menu-tab="garage">🔧 GARAGE &amp; CAR CUSTOMIZER</button>
+                    <button class="arcade-btn btn-gold" id="tab-btn-race" data-menu-tab="race">🏆 OFFICIAL RACE MODE</button>
+                    <button class="arcade-btn" id="tab-btn-tracks" data-menu-tab="tracks">🏁 TRACKS &amp; MECHANIC LABS (13)</button>
+                    <button class="arcade-btn" id="btn-open-attract-title" title="Return to Arcade Attract Mode Title Screen">🎬 TITLE SCREEN</button>
+                    <button class="arcade-btn btn-gold hidden" id="btn-resume-from-menu">▶ RESUME DRIVE (ESC)</button>
+                </div>
             </div>
 
-            <div class="dev-menu-grid">
+            <!-- ================================================================
+                 TAB VIEW 1: UNDERGROUND RAVE GARAGE & MODULAR VEHICLE CUSTOMIZER
+                 ================================================================ -->
+            <div id="menu-tab-garage" class="garage-customizer-grid">
+                <!-- LEFT COLUMN: LIVE 3D WEBGL TURNTABLE VIEWPORT + STATS + QUICK LAUNCH -->
+                <div class="garage-preview-col">
+                    <div class="garage-viewport-frame">
+                        <canvas id="garage-turntable-canvas" width="640" height="360"></canvas>
+                        <div class="garage-viewport-hud-top">
+                            <span class="garage-badge-code" id="garage-hud-code">CAR-04 // LOD0</span>
+                            <span class="garage-badge-tris" id="garage-hud-tris">1,240 TRIS • 1 DRAW CALL</span>
+                        </div>
+                        <div class="garage-viewport-hud-bottom">
+                            <div>
+                                <div id="garage-hud-title" class="garage-car-title">04 HARIGAYA TOURER</div>
+                                <div id="garage-hud-subtitle" class="garage-car-subtitle">JZX100 CHASER / E36 4-DOOR DRIFT SALOON</div>
+                            </div>
+                            <div class="garage-orbit-hint">🖱️ DRAG TO ORBIT 360° • SCROLL TO ZOOM</div>
+                        </div>
+                    </div>
+
+                    <!-- LIVE FLUID RACE COLOR SHIFT TELEMETRY SWATCH BAR -->
+                    <div class="garage-fluid-telemetry-box">
+                        <div class="garage-fluid-telemetry-head">
+                            <span>🌈 LIVE FLUID RACE COLOR STREAM (REAL-TIME SECTOR + BEAT + DRIFT MORPH)</span>
+                            <strong id="garage-fluid-status-lbl">FLUID SHIFT: 72% ACTIVE</strong>
+                        </div>
+                        <div class="garage-fluid-swatch-strip" id="garage-fluid-swatch-strip">
+                            <div class="fluid-swatch-item"><span class="fluid-swatch-box" id="live-sw-primary"></span><small>PRIMARY</small></div>
+                            <div class="fluid-swatch-item"><span class="fluid-swatch-box" id="live-sw-shift"></span><small>SHIFT TARGET</small></div>
+                            <div class="fluid-swatch-item"><span class="fluid-swatch-box" id="live-sw-secondary"></span><small>SECONDARY</small></div>
+                            <div class="fluid-swatch-item"><span class="fluid-swatch-box" id="live-sw-livery1"></span><small>LIVERY 1</small></div>
+                            <div class="fluid-swatch-item"><span class="fluid-swatch-box" id="live-sw-livery2"></span><small>LIVERY 2</small></div>
+                            <div class="fluid-swatch-item"><span class="fluid-swatch-box" id="live-sw-frontrim"></span><small>FRONT RIM</small></div>
+                            <div class="fluid-swatch-item"><span class="fluid-swatch-box" id="live-sw-rearrim"></span><small>REAR RIM</small></div>
+                            <div class="fluid-swatch-item"><span class="fluid-swatch-box" id="live-sw-cage"></span><small>CAGE/SEATS</small></div>
+                            <div class="fluid-swatch-item"><span class="fluid-swatch-box" id="live-sw-glow"></span><small>GLOW/LENS</small></div>
+                        </div>
+                    </div>
+
+                    <!-- ARCHETYPE PERFORMANCE TELEMETRY BARS -->
+                    <div class="garage-stats-box">
+                        <div class="garage-stat-row">
+                            <span>TOP SPEED</span>
+                            <div class="garage-stat-track"><div class="garage-stat-fill" id="stat-bar-speed" style="width:95%"></div></div>
+                            <strong id="stat-val-speed">95</strong>
+                        </div>
+                        <div class="garage-stat-row">
+                            <span>LAUNCH ACCEL</span>
+                            <div class="garage-stat-track"><div class="garage-stat-fill" id="stat-bar-accel" style="width:88%"></div></div>
+                            <strong id="stat-val-accel">88</strong>
+                        </div>
+                        <div class="garage-stat-row">
+                            <span>R4 DRIFT ANGLE</span>
+                            <div class="garage-stat-track"><div class="garage-stat-fill" id="stat-bar-drift" style="width:99%"></div></div>
+                            <strong id="stat-val-drift">99</strong>
+                        </div>
+                        <div class="garage-stat-row">
+                            <span>AWD / CORNER GRIP</span>
+                            <div class="garage-stat-track"><div class="garage-stat-fill" id="stat-bar-grip" style="width:81%"></div></div>
+                            <strong id="stat-val-grip">81</strong>
+                        </div>
+                    </div>
+
+                    <!-- DIRECT TRACK LAUNCH BAR FROM GARAGE -->
+                    <div class="garage-launch-bar">
+                        <button class="arcade-btn btn-gold garage-race-hero-btn" data-launch-mode="official_race">🏆 START OFFICIAL 3-LAP RACE (COUNTDOWN + STATS) ▶</button>
+                        <button class="arcade-btn" data-launch-mode="track_full_race">🏁 FULL CIRCUIT + AI ▶</button>
+                        <button class="arcade-btn" data-launch-mode="track_skidpad">🔥 DRIFT SKIDPAD ▶</button>
+                        <button class="arcade-btn" data-launch-mode="track_straight">🛣️ DRAG RUNWAY ▶</button>
+                        <button class="arcade-btn" data-launch-mode="lab_car_mechanics">🔬 360° TURNTABLE LAB ▶</button>
+                    </div>
+                </div>
+
+                <!-- RIGHT COLUMN: EXPANDED REFERENCE PRESETS, INDIVIDUAL ZONE COLORS, KITBASH & LIVERY CONTROLS -->
+                <div class="garage-controls-col">
+                    <!-- 1. ONE-CLICK REFERENCE IMAGE & CONCEPT ART HERO PRESETS (12 BUILDS) -->
+                    <div class="garage-control-group">
+                        <div class="garage-group-header">
+                            <span>⚡ 12 REFERENCE &amp; CONCEPT BUILDS (CARS 01–09 + PLATES)</span>
+                            <button class="mini-dev-btn" id="btn-garage-randomize">🎲 RANDOMIZE RAVE BUILD</button>
+                        </div>
+                        <div class="garage-preset-row garage-preset-grid-4">
+                            <button class="garage-chip active" data-car-preset="preset_harigaya_chaser" title="Ref 01: Candy Purple Toyota Chaser JZX100 with Orange/Yellow Flames &amp; Chrome VS-KF">01 HARIGAYA JZX100</button>
+                            <button class="garage-chip" data-car-preset="preset_ultraviolet_tribal" title="Ref 02: Ultraviolet Drift Coupe with Acid Green Tribal Flames, Neon Green Cage &amp; Underglow">02 ULTRAVIOLET TRIBAL</button>
+                            <button class="garage-chip" data-car-preset="preset_y2k_subaru" title="Ref 03: Y2K Posterized Cobalt Blue &amp; Cyber Yellow Subaru WRX STI">03 Y2K SUBARU STI</button>
+                            <button class="garage-chip" data-car-preset="preset_pink_style_ps13" title="Ref 04: Team Pink Style PS13 with Chartreuse Front + Hot Pink Rear Drift Rims">04 PINK STYLE PS13</button>
+                            <button class="garage-chip" data-car-preset="preset_tekkamen_r30" title="Ref 05: 80s Nissan Skyline R30 RS-Turbo Tekkamen Panda Two-Tone">05 TEKKAMEN R30</button>
+                            <button class="garage-chip" data-car-preset="preset_lbwk_doodle" title="Ref 06: Liberty Walk White Coupe with Pink Street-Marker Hearts &amp; Red Seats">06 LBWK KIDS MARKER</button>
+                            <button class="garage-chip" data-car-preset="preset_donut_e36" title="Ref 07: Donut Media 'CARS ARE PAIN' Yellow/Black Inverse-Flame BMW E36">07 CARS ARE PAIN E36</button>
+                            <button class="garage-chip" data-car-preset="preset_savanna_fc3s" title="Ref 08: Sunburst Yellow Mazda RX-7 FC3S #39 with Green Stripe &amp; Winking Pop-Up">08 SAVANNA FC3S #39</button>
+                            <button class="garage-chip" data-car-preset="preset_touge_dc2" title="Ref 09: Deep Burgundy Honda Integra DC2 Type-R with Amber Quad Touge Headlights">09 SPIDER-EYE DC2</button>
+                            <button class="garage-chip" data-car-preset="preset_wild_horses" title="Concept 01: Wild Horses GR Yaris Widebody">C1 WILD HORSES YARIS</button>
+                            <button class="garage-chip" data-car-preset="preset_gravel_ravers" title="Concept 02: Gravel Ravers Impreza GC8">C2 GRAVEL RAVERS GC8</button>
+                            <button class="garage-chip" data-car-preset="preset_shakotan_cyber" title="Concept 03: Shakotan Cyber 180SX">C3 SHAKOTAN CYBER S13</button>
+                        </div>
+                    </div>
+
+                    <!-- 2. BASE CHASSIS ARCHETYPE (6 CHASSIS) -->
+                    <div class="garage-control-group">
+                        <div class="garage-group-header"><span>🏎️ 1. BASE CHASSIS ARCHETYPE (6 JDM / STREET SILHOUETTES)</span></div>
+                        <div class="garage-preset-row">
+                            <button class="garage-chip" data-car-arch="pocket_rocket">01 POCKET ROCKET (YARIS)</button>
+                            <button class="garage-chip" data-car-arch="gravel_ravers">02 GRAVEL RAVERS (GC8/STI)</button>
+                            <button class="garage-chip" data-car-arch="shakotan_cyber">03 SHAKOTAN CYBER (S13/PS13)</button>
+                            <button class="garage-chip active" data-car-arch="harigaya_chaser">04 HARIGAYA TOURER (JZX/E36)</button>
+                            <button class="garage-chip" data-car-arch="savanna_fc3s">05 SAVANNA WEDGE (FC3S/R30)</button>
+                            <button class="garage-chip" data-car-arch="touge_integra">06 SPIDER-EYE TOUGE (DC2/LBWK)</button>
+                        </div>
+                    </div>
+
+                    <!-- 3. INDIVIDUAL CAR ZONE COLORS + FLUID RACE COLOR SHIFT ENGINE -->
+                    <div class="garage-control-group garage-color-cust-group">
+                        <div class="garage-group-header">
+                            <span>🎨 2. INDIVIDUAL CAR ZONE COLORS &amp; FLUID RACE SHIFT</span>
+                            <div style="display:flex;gap:4px;">
+                                <button type="button" class="mini-dev-btn active" id="btn-cust-color-mode" title="Toggle Individual Custom Colors vs Pure Vibe LUT">CUSTOM COLORS: ON</button>
+                                <button type="button" class="mini-dev-btn" id="btn-sync-vibe-colors" title="Copy current Track Vibe LUT colors into the individual color pickers">🔄 SYNC FROM VIBE</button>
+                                <button type="button" class="mini-dev-btn" id="btn-match-rims" title="Match Rear Wheel Rim color to Front Wheel Rim color">🛞 MATCH RIMS</button>
+                            </div>
+                        </div>
+                        <div class="garage-color-picker-grid">
+                            <label class="garage-color-field" title="Primary Body Paint (base color before fluid race morphing)">
+                                <input type="color" id="color-cust-primary" value="#4d12b8" />
+                                <div><span>BODY PRIMARY</span><strong id="hex-cust-primary">#4D12B8</strong></div>
+                            </label>
+                            <label class="garage-color-field" title="Fluid Race Shift Target: Body Primary morphs toward this color across Track Sectors, Bass Drops &amp; Drifts!">
+                                <input type="color" id="color-cust-shift" value="#b814a8" />
+                                <div><span>FLUID SHIFT TARGET</span><strong id="hex-cust-shift">#B814A8</strong></div>
+                            </label>
+                            <label class="garage-color-field" title="Secondary Body Paint / Two-Tone Lower Skirt / Aero Splitters">
+                                <input type="color" id="color-cust-secondary" value="#220958" />
+                                <div><span>SECONDARY / AERO</span><strong id="hex-cust-secondary">#220958</strong></div>
+                            </label>
+                            <label class="garage-color-field" title="Livery Graphic Layer 1 (Flames / Tribal Lightning / STI Swoosh / Center Stripe)">
+                                <input type="color" id="color-cust-livery1" value="#ff5e00" />
+                                <div><span>LIVERY 1 (FLAME/STRIPE)</span><strong id="hex-cust-livery1">#FF5E00</strong></div>
+                            </label>
+                            <label class="garage-color-field" title="Livery Graphic Layer 2 (Kanji / Flame Core / Hearts / Checkers / #39 Roundel / Banner)">
+                                <input type="color" id="color-cust-livery2" value="#ffe600" />
+                                <div><span>LIVERY 2 (KANJI/ACCENT)</span><strong id="hex-cust-livery2">#FFE600</strong></div>
+                            </label>
+                            <label class="garage-color-field" title="Front Wheel Rim Color (supports asymmetric drift wheels like Cars/04!)">
+                                <input type="color" id="color-cust-front-rim" value="#eef4ff" />
+                                <div><span>FRONT WHEEL RIMS</span><strong id="hex-cust-front-rim">#EEF4FF</strong></div>
+                            </label>
+                            <label class="garage-color-field" title="Rear Wheel Rim Color (pick a different color for D1GP mismatched drift wheels!)">
+                                <input type="color" id="color-cust-rear-rim" value="#eef4ff" />
+                                <div><span>REAR WHEEL RIMS</span><strong id="hex-cust-rear-rim">#EEF4FF</strong></div>
+                            </label>
+                            <label class="garage-color-field" title="Interior 6-Point Roll Cage &amp; Racing Bucket Seats (e.g. Neon Green Cage in Cars/02 or Crimson Seats in Cars/06)">
+                                <input type="color" id="color-cust-cage" value="#00e5ff" />
+                                <div><span>ROLL CAGE &amp; SEATS</span><strong id="hex-cust-cage">#00E5FF</strong></div>
+                            </label>
+                            <label class="garage-color-field" title="Headlight Lens Tint, Quad Fog Pods &amp; Chassis Underglow Neon (e.g. Amber Touge Cars/09 or Green Underglow Cars/02)">
+                                <input type="color" id="color-cust-glow" value="#ff8800" />
+                                <div><span>HEADLIGHT &amp; UNDERGLOW</span><strong id="hex-cust-glow">#FF8800</strong></div>
+                            </label>
+                        </div>
+                        <div class="slider-row" style="margin-top:4px;">
+                            <div class="slider-lbl">
+                                <span>🌊 Fluid Race Color Shift Reactivity (0% Static Custom ↔ 100% Full Sector/Beat/Drift Morph)</span>
+                                <span id="val-cust-fluid-shift">72%</span>
+                            </div>
+                            <input type="range" id="slider-cust-fluid-shift" min="0.0" max="1.0" step="0.02" value="0.72" />
+                        </div>
+                    </div>
+
+                    <!-- 4. MODULAR KITBASH ATTACHMENTS -->
+                    <div class="garage-control-group">
+                        <div class="garage-group-header"><span>🔩 3. MODULAR KITBASH BODYKIT, WHEELS &amp; WINKING POP-UPS</span></div>
+                        <div class="garage-select-grid">
+                            <label class="garage-field">
+                                <span>WHEEL RIM STYLE (7 DESIGNS)</span>
+                                <select id="cust-wheel-style">
+                                    <option value="chrome_vskf">Work VS-KF 5-Spoke Deep-Dish (Cars/01)</option>
+                                    <option value="deepdish_5spoke">Shakotan Step-Lip 5-Spoke (Cars/02)</option>
+                                    <option value="rally_6spoke">Tarmac Rally / Drift 6-Spoke (Cars/03, 04)</option>
+                                    <option value="watanabe_8spoke">RS-Watanabe 8-Spoke Retro (Cars/05, 08)</option>
+                                    <option value="touge_10spoke">Type-R / LBWK 10-Spoke Mesh (Cars/06, 09)</option>
+                                    <option value="asymmetric">Asymmetric (Turbofan F / Deep-Dish R)</option>
+                                    <option value="turbofan">Group-B Conical Slotted Turbofan</option>
+                                </select>
+                            </label>
+                            <label class="garage-field">
+                                <span>REAR WING / SPOILER</span>
+                                <select id="cust-wing-type">
+                                    <option value="swan_neck">Time-Attack Swan-Neck GT Wing (Cars/01, 02, 06)</option>
+                                    <option value="high_mount_gt">Touge High-Mount Aluminum GT Wing (Cars/09)</option>
+                                    <option value="rally_box">Dual-Deck WRC Rally Box Wing (Cars/03)</option>
+                                    <option value="ducktail">Shakotan Boso Ducktail Slit (Cars/04, 07, 08)</option>
+                                    <option value="none">Shaved Street Trunk (Cars/05)</option>
+                                </select>
+                            </label>
+                            <label class="garage-field">
+                                <span>FRONT AERO / LAMPS / COOLERS</span>
+                                <select id="cust-front-mod">
+                                    <option value="fmic">Exposed Twin-Core FMIC Intercooler (Cars/01, 02, 04)</option>
+                                    <option value="spider_quads">DC2 Spider-Eye Quad Round Amber Lamps (Cars/09)</option>
+                                    <option value="tekkamen_ducts">R30 Tekkamen Iron-Mask Triple Ducts (Cars/05)</option>
+                                    <option value="lbwk_canards">LBWK Twin Dive-Plane Canards + Splitter (Cars/06)</option>
+                                    <option value="oil_cooler">External Kaido Oil Cooler + Hoses (Cars/08)</option>
+                                    <option value="fog_pods">Quad Rally Halogen Fog Light Pods (Cars/03)</option>
+                                    <option value="none">Clean Aero Splitter</option>
+                                </select>
+                            </label>
+                            <label class="garage-field">
+                                <span>POP-UP HEADLIGHT WINK MODE</span>
+                                <select id="cust-popup-mode">
+                                    <option value="both">Symmetric Pop-Ups (Both Open/Flush)</option>
+                                    <option value="wink_left">😉 Asymmetric Wink Left Open (Cars/08 FC3S)</option>
+                                    <option value="wink_right">😜 Asymmetric Wink Right Open</option>
+                                </select>
+                            </label>
+                            <label class="garage-field">
+                                <span>ROOF ATTACHMENT</span>
+                                <select id="cust-roof-mod">
+                                    <option value="none">Clean Aerodynamic Roof</option>
+                                    <option value="cargo_box">Thule Aerodynamic Cargo Box</option>
+                                    <option value="yakima_rack">Yakima Roof Rack + Fairing</option>
+                                </select>
+                            </label>
+                            <label class="garage-field">
+                                <span>EXHAUST &amp; MUDFLAPS</span>
+                                <div style="display:flex;gap:4px;">
+                                    <select id="cust-exhaust-type" style="flex:1;">
+                                        <option value="dual_shotgun">Boso Shotgun Pipes</option>
+                                        <option value="quad_titanium">Quad Titanium Tips</option>
+                                    </select>
+                                    <button type="button" class="mini-dev-btn" id="cust-mudflaps-btn" style="flex:0.9;">🛡️ FLAPS: OFF</button>
+                                </div>
+                            </label>
+                        </div>
+                    </div>
+
+                    <!-- 5. STANCE, CAMBER & SLEEPY-EYE ARTICULATION -->
+                    <div class="garage-control-group">
+                        <div class="garage-group-header"><span>📐 4. STANCE, DEMON CAMBER &amp; SLEEPY-EYE RIG</span></div>
+                        <div class="garage-sliders-grid">
+                            <div class="slider-row">
+                                <div class="slider-lbl"><span>Sleepy-Eye Pop-Up Angle</span><span id="val-cust-popup">0°</span></div>
+                                <input type="range" id="slider-cust-popup" min="0" max="45" step="1" value="0" />
+                            </div>
+                            <div class="slider-row">
+                                <div class="slider-lbl"><span>Wheel Camber (Oni-Kyan)</span><span id="val-cust-camber">-6.0°</span></div>
+                                <input type="range" id="slider-cust-camber" min="-8.0" max="0.0" step="0.5" value="-6.0" />
+                            </div>
+                            <div class="slider-row">
+                                <div class="slider-lbl"><span>Coilover Ride Height</span><span id="val-cust-height">-45mm</span></div>
+                                <input type="range" id="slider-cust-height" min="-0.06" max="0.05" step="0.005" value="-0.045" />
+                            </div>
+                            <div class="slider-row">
+                                <div class="slider-lbl"><span>Sticker / Doodle Density</span><span id="val-cust-stickers">90%</span></div>
+                                <input type="range" id="slider-cust-stickers" min="0.0" max="1.0" step="0.05" value="0.90" />
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 6. STREET-RAVE LIVERY (12 PATTERNS) & VIBE 2D LUT PALETTE (8 PALETTES) -->
+                    <div class="garage-control-group">
+                        <div class="garage-group-header"><span>🖌️ 5. STREET-RAVE LIVERY (12 PATTERNS) &amp; TRACK VIBE LUT</span></div>
+                        <div class="garage-select-grid" style="grid-template-columns: 1fr; margin-bottom: 6px;">
+                            <label class="garage-field">
+                                <span>PROCEDURAL LIVERY GRAPHIC PATTERN (USES YOUR LIVERY 1 &amp; LIVERY 2 COLORS!)</span>
+                                <select id="cust-livery-id">
+                                    <option value="4">04 HARIGAYA FLAME // Wrapping Hot-Rod Flames &amp; Kanji (Cars/01)</option>
+                                    <option value="5">05 ULTRAVIOLET TRIBAL // Acid Lightning Flames &amp; Stars (Cars/02)</option>
+                                    <option value="6">06 Y2K DUOTONE // Posterized STI Rally Swoosh &amp; Stars (Cars/03)</option>
+                                    <option value="7">07 PINK STYLE SUPER-D // D1GP Splash, Checkers &amp; Fade (Cars/04)</option>
+                                    <option value="8">08 TEKKAMEN PANDA // 80s Two-Tone Rub-Strip &amp; RS-TURBO (Cars/05)</option>
+                                    <option value="9">09 LBWK KIDS DOODLE // Hand-Drawn Marker Hearts &amp; Tags (Cars/06)</option>
+                                    <option value="10">10 CARS ARE PAIN // Black Nose + Inverse Hood Flames (Cars/07)</option>
+                                    <option value="11">11 SAVANNA #39 STRIPE // Twin-Pinstripe Center Stripe &amp; #39 (Cars/08)</option>
+                                    <option value="1">01 WILD HORSES // Blue Cat &amp; Vermilion Graphic Slash</option>
+                                    <option value="2">02 GRAVEL RAVERS // Acid Woodland Camo + #01 Door Plate</option>
+                                    <option value="3">03 SHAKOTAN CYBER // Hot-Pink D1GP Tribal Dragon</option>
+                                    <option value="0">00 CLEAN FACTORY // Pure Custom Paint (Cars/09 Touge DC2)</option>
+                                </select>
+                            </label>
+                        </div>
+                        <div class="garage-vibe-grid" style="grid-template-columns: repeat(4, 1fr);">
+                            <button class="vibe-btn active" data-vibe="harigaya_flame_night">HARIGAYA FLAME</button>
+                            <button class="vibe-btn" data-vibe="pink_style_d1gp">PINK STYLE D1GP</button>
+                            <button class="vibe-btn" data-vibe="wild_horses_cobalt">WILD HORSES</button>
+                            <button class="vibe-btn" data-vibe="gravel_raver_camo">GRAVEL RAVERS</button>
+                            <button class="vibe-btn" data-vibe="cyber_flamingo">REDLINE SOLAR</button>
+                            <button class="vibe-btn" data-vibe="pacific_sunset">PACIFIC SUNSET</button>
+                            <button class="vibe-btn" data-vibe="acid_warehouse">ACID 303</button>
+                            <button class="vibe-btn" data-vibe="midnight_shibuya">SHIBUYA R4</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ================================================================
+                 TAB VIEW 1B: OFFICIAL GRAND PRIX RACE SETUP & TRACK RECORDS
+                 ================================================================ -->
+            <div id="menu-tab-race" class="dev-menu-grid hidden">
+                <!-- LEFT COLUMN: CIRCUIT, LAPS & AI CLASS CONFIGURATION -->
+                <div class="dev-menu-section">
+                    <div class="dev-section-title">🏆 1. GRAND PRIX RACE CONFIGURATION</div>
+                    <p class="dev-section-sub">Configure your race event. Features a 4-Car Starting Grid, 3-2-1-GO Boost-Start Countdown, Live Lap Split Timing, and Full Post-Race Telemetry &amp; Style Grading.</p>
+
+                    <div class="garage-control-group" style="margin-bottom:10px;">
+                        <div class="garage-group-header"><span>🗺️ SELECT RACE CIRCUIT</span></div>
+                        <div class="race-setup-track-grid" id="race-setup-track-list">
+                            <button type="button" class="race-track-option active" data-race-track="nagai_bayshore">
+                                <div class="rto-top">
+                                    <strong>04 NAGAI BAYSHORE CIRCUIT</strong>
+                                    <span class="dev-tag tag-volt">GRAND PRIX</span>
+                                </div>
+                                <span>4-Sector Coastal Loop (Palms → Bass Tunnel → Bridge → Shibuya)</span>
+                            </button>
+                            <button type="button" class="race-track-option" data-race-track="wangan_cyberport">
+                                <div class="rto-top">
+                                    <strong>05 WANGAN CYBER-PORT &amp; HELIX</strong>
+                                    <span class="dev-tag tag-cyan">SPIRAL + TUBE</span>
+                                </div>
+                                <span>Container Cranes, +34m 270° Spiral Viaduct Helix &amp; -16m Reactor Tube</span>
+                            </button>
+                            <button type="button" class="race-track-option" data-race-track="hakone_canyon">
+                                <div class="rto-top">
+                                    <strong>06 HAKONE NEON CANYON PASS</strong>
+                                    <span class="dev-tag tag-gold">TOUGE + DISH</span>
+                                </div>
+                                <span>+44m Wind-Farm Ridge, Deep-Space Dish, Laser Cathedral &amp; 5-Hairpin Gorge</span>
+                            </button>
+                            <button type="button" class="race-track-option" data-race-track="odaiba_megaplex">
+                                <div class="rto-top">
+                                    <strong>07 ODAIBA FIGURE-8 CROSSOVER</strong>
+                                    <span class="dev-tag tag-magenta">3D FIGURE-8</span>
+                                </div>
+                                <span>Grade-Separated +28m Over -12m Figure-8, Giant Bowling Pins &amp; Megasphere</span>
+                            </button>
+                            <button type="button" class="race-track-option" data-race-track="drift_skidpad">
+                                <div class="rto-top">
+                                    <strong>02 R4 DRIFT SKIDPAD &amp; HAIRPIN</strong>
+                                    <span class="dev-tag tag-gold">TECHNICAL</span>
+                                </div>
+                                <span>Sweeping Drift Bowl, S-Chicane &amp; 180° Hairpin Arena</span>
+                            </button>
+                            <button type="button" class="race-track-option" data-race-track="elevation_bank">
+                                <div class="rto-top">
+                                    <strong>03 ELEVATION &amp; BANKING COASTER</strong>
+                                    <span class="dev-tag tag-magenta">3D SLOPES</span>
+                                </div>
+                                <span>+28m Blind Crest, Downhill Plunge &amp; High-Banked Bowl</span>
+                            </button>
+                            <button type="button" class="race-track-option" data-race-track="straight_drag">
+                                <div class="rto-top">
+                                    <strong>01 BAYSHORE HIGH-SPEED OVAL</strong>
+                                    <span class="dev-tag tag-cyan">TOP SPEED</span>
+                                </div>
+                                <span>750m Full-Throttle Runway &amp; Wide Banked Turnaround</span>
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="garage-control-group" style="margin-bottom:10px;">
+                        <div class="garage-group-header"><span>🔄 LAP COUNT &amp; RIVAL AI CLASS</span></div>
+                        <div class="race-setup-row">
+                            <div class="race-setup-col">
+                                <span class="race-setup-lbl">RACE DISTANCE (LAPS)</span>
+                                <div class="garage-preset-row" style="grid-template-columns: repeat(4, 1fr);">
+                                    <button type="button" class="garage-chip" data-race-laps="1">1 LAP SPRINT</button>
+                                    <button type="button" class="garage-chip" data-race-laps="2">2 LAPS</button>
+                                    <button type="button" class="garage-chip active" data-race-laps="3">3 LAPS (GP)</button>
+                                    <button type="button" class="garage-chip" data-race-laps="5">5 LAPS</button>
+                                </div>
+                            </div>
+                            <div class="race-setup-col">
+                                <span class="race-setup-lbl">AI RIVAL DIFFICULTY</span>
+                                <div class="garage-preset-row" style="grid-template-columns: repeat(3, 1fr);">
+                                    <button type="button" class="garage-chip" data-race-diff="ROOKIE">ROOKIE</button>
+                                    <button type="button" class="garage-chip active" data-race-diff="PRO">R4 PRO</button>
+                                    <button type="button" class="garage-chip" data-race-diff="RAVE_DEMON">RAVE DEMON</button>
+                                </div>
+                            </div>
+                            <div class="race-setup-col">
+                                <span class="race-setup-lbl">TRANSMISSION GEARBOX (NAMCO ARCADE SELECT)</span>
+                                <div class="garage-preset-row" style="grid-template-columns: repeat(2, 1fr);">
+                                    <button type="button" class="garage-chip active" data-race-trans="AT">⚙️ AT // AUTOMATIC 6-SPEED</button>
+                                    <button type="button" class="garage-chip" data-race-trans="MT">🕹️ MT // SEQUENTIAL MANUAL [Q / E]</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <button type="button" class="arcade-btn btn-gold race-big-launch-btn" id="btn-launch-configured-race">
+                        🏁 START OFFICIAL RACE (3-2-1 COUNTDOWN) ▶
+                    </button>
+                </div>
+
+                <!-- RIGHT COLUMN: STARTING GRID LINEUP, BOOST-START MECHANIC & PERSONAL BESTS -->
+                <div class="dev-menu-section">
+                    <div class="dev-section-title">🏎️ 2. STARTING GRID LINEUP &amp; TRACK RECORDS</div>
+                    <p class="dev-section-sub">Your custom Garage build starts in P4 Grid Slot behind the 3 Personality AI Rivals.</p>
+
+                    <div class="garage-control-group" style="margin-bottom:10px;">
+                        <div class="garage-group-header"><span>🚦 STARTING GRID ORDER (2×2 STAGGERED)</span></div>
+                        <div class="starting-grid-preview">
+                            <div class="grid-slot-card">
+                                <span class="grid-pos-badge">P1 POLE</span>
+                                <div>
+                                    <strong>MIRA "VAPOR" // WILD HORSES</strong>
+                                    <small>01 POCKET ROCKET // STYLE QUEEN</small>
+                                </div>
+                            </div>
+                            <div class="grid-slot-card">
+                                <span class="grid-pos-badge">P2 GRID</span>
+                                <div>
+                                    <strong>KAI "REDLINE" // SHAKOTAN S13</strong>
+                                    <small>03 SHAKOTAN CYBER // BRUISER</small>
+                                </div>
+                            </div>
+                            <div class="grid-slot-card">
+                                <span class="grid-pos-badge">P3 GRID</span>
+                                <div>
+                                    <strong>REX "303" // GRAVEL GC8</strong>
+                                    <small>02 GRAVEL RAVERS // TECH SPEC</small>
+                                </div>
+                            </div>
+                            <div class="grid-slot-card grid-slot-player">
+                                <span class="grid-pos-badge badge-player">P4 YOU</span>
+                                <div>
+                                    <strong id="race-menu-player-car">REN "PHASE" // 04 HARIGAYA TOURER</strong>
+                                    <small id="race-menu-player-vibe">CUSTOM GARAGE BUILD • READY</small>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="garage-control-group" style="margin-bottom:10px;">
+                        <div class="garage-group-header"><span>⚡ R4 BOOST-START COUNTDOWN MECHANIC</span></div>
+                        <p style="font-size:11px;color:#cfc9ec;line-height:1.45;">
+                            During the <strong>3 — 2 — 1 — GO!!</strong> countdown, feather <strong>[W / ▲]</strong> to keep your engine revving inside the <strong>GOLD SWEET SPOT (6,500–8,400 RPM)</strong> when <strong>GO!!</strong> hits to unleash an instant <strong>Tier-2 Perfect Launch Boost</strong> off the line!
+                        </p>
+                    </div>
+
+                    <div class="garage-control-group">
+                        <div class="garage-group-header"><span>⏱️ PERSONAL BEST CIRCUIT RECORDS</span></div>
+                        <div id="menu-race-records-body" class="race-records-table"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ================================================================
+                 TAB VIEW 2: DRIVING TRACKS & MECHANIC LABS (9 MODES)
+                 ================================================================ -->
+            <div id="menu-tab-tracks" class="dev-menu-grid hidden">
                 <!-- COLUMN 1: DRIVING & TRACK TESTBEDS -->
                 <div class="dev-menu-section">
-                    <div class="dev-section-title">🏁 1. DRIVING &amp; PHYSICS TEST TRACKS</div>
-                    <p class="dev-section-sub">Select a track preset to isolate steering, acceleration, drift angles, or 3D elevation.</p>
+                    <div class="dev-section-title">🏁 1. OFFICIAL RACE &amp; DRIVING TEST TRACKS</div>
+                    <p class="dev-section-sub">Launch an Official 3-Lap Race with 3-2-1 Countdown &amp; End Stats, or isolate physics on test tracks.</p>
 
                     <div class="dev-card-list">
+                        <div class="dev-card dev-card-featured" data-launch-mode="official_race">
+                            <div class="dev-card-head">
+                                <span class="dev-card-title">🏆 OFFICIAL 3-LAP GRAND PRIX RACE (COUNTDOWN + STATS)</span>
+                                <span class="dev-tag tag-gold">RACE EVENT</span>
+                            </div>
+                            <p>Full 4-Car Starting Grid, <strong>3-2-1-GO Boost-Start Countdown</strong>, Lap Split Timing, AI Rivals, and <strong>Post-Race Standings &amp; Telemetry Stats Screen</strong>.</p>
+                            <button class="dev-launch-btn">START OFFICIAL 3-LAP RACE ▶</button>
+                        </div>
                         <div class="dev-card" data-launch-mode="track_straight">
                             <div class="dev-card-head">
                                 <span class="dev-card-title">TRACK 01 // STRAIGHTAWAY &amp; DRAG RUNWAY</span>
@@ -68,6 +585,33 @@
                             <p>Complete 4-sector circuit (Palms → Bass Tunnel → Suspension Bridge → Shibuya) with all 3 Personality AI Rivals.</p>
                             <button class="dev-launch-btn">LAUNCH FULL CIRCUIT ▶</button>
                         </div>
+
+                        <div class="dev-card" data-launch-mode="track_wangan">
+                            <div class="dev-card-head">
+                                <span class="dev-card-title">TRACK 05 // WANGAN CYBER-PORT &amp; CONTAINER HELIX</span>
+                                <span class="dev-tag tag-cyan">SPIRAL + TUBE</span>
+                            </div>
+                            <p>20-node industrial bayshore: <strong>Gantry Cranes &amp; Container Stacks</strong>, <strong>270° Spiral Viaduct Helix (+34m)</strong>, <strong>-16m Submerged Reactor Tube</strong>, Toll Plaza &amp; <strong>90m Ferris Wheel</strong>.</p>
+                            <button class="dev-launch-btn">LAUNCH WANGAN CYBER-PORT ▶</button>
+                        </div>
+
+                        <div class="dev-card" data-launch-mode="track_hakone">
+                            <div class="dev-card-head">
+                                <span class="dev-card-title">TRACK 06 // HAKONE NEON CANYON &amp; LASER CATHEDRAL</span>
+                                <span class="dev-tag tag-gold">TOUGE + DISH</span>
+                            </div>
+                            <p>Technical mountain pass: <strong>+44m Wind-Farm Ridge Ascent</strong>, <strong>Deep-Space Parabolic Dish Summit</strong>, <strong>3D Wireframe Laser Cathedral</strong>, and <strong>5-Hairpin Gorge Viaduct</strong>.</p>
+                            <button class="dev-launch-btn">LAUNCH HAKONE CANYON ▶</button>
+                        </div>
+
+                        <div class="dev-card" data-launch-mode="track_odaiba">
+                            <div class="dev-card-head">
+                                <span class="dev-card-title">TRACK 07 // ODAIBA MEGA-PLEX &amp; FIGURE-8 CROSSOVER</span>
+                                <span class="dev-tag tag-magenta">3D FIGURE-8</span>
+                            </div>
+                            <p>True 3D grade-separated <strong>Figure-8 Crossover (+28m Skyway Bridge over -12m Subwoofer Trench)</strong>, <strong>Giant Neon Bowling Pin Plaza</strong>, <strong>Fuji-TV Megasphere</strong> &amp; Resort Hotel.</p>
+                            <button class="dev-launch-btn">LAUNCH ODAIBA FIGURE-8 ▶</button>
+                        </div>
                     </div>
                 </div>
 
@@ -91,7 +635,7 @@
                                 <span class="dev-card-title">LAB 02 // VIBE 2D LUT &amp; PAINT SMUDGE STUDIO</span>
                                 <span class="dev-tag tag-magenta">RENDERING</span>
                             </div>
-                            <p>Compare Raw 3D Scene vs Smudge History Buffer vs Final Composite. Test all 4 Car Vibes × 4 Track Zones and Kuwahara oil-paint edges.</p>
+                            <p>Compare Raw 3D Scene vs Smudge History Buffer vs Final Composite. Test all 6 Car Vibes × 4 Track Zones and Kuwahara oil-paint edges.</p>
                             <button class="dev-launch-btn">OPEN SHADER &amp; VIBE STUDIO ▶</button>
                         </div>
 
@@ -113,6 +657,15 @@
                             <button class="dev-launch-btn">OPEN REKORDBOX DJ STUDIO ▶</button>
                         </div>
 
+                        <div class="dev-card" data-launch-mode="lab_dj_trainer">
+                            <div class="dev-card-head">
+                                <span class="dev-card-title">LAB 06 // AI DJ TRANSITION TRAINER (HUMAN RLHF)</span>
+                                <span class="dev-tag tag-magenta">RLHF STUDIO</span>
+                            </div>
+                            <p>Audition 15s sweet-spot transitions across all 121 tracks, rate mixes <strong>1★–5★</strong>, tag issues (Vocal Clash, Weak Drop, Off-Phrase), nudge cues ±4/8 bars, and train AI DJ Kinetix live.</p>
+                            <button class="dev-launch-btn">LAUNCH AI DJ TRAINER STUDIO ▶</button>
+                        </div>
+
                         <div class="dev-card" data-launch-mode="lab_world_map">
                             <div class="dev-card-head">
                                 <span class="dev-card-title">LAB 05 // WORLD MAP &amp; LANDMARK "DRIVE-OVER" LOADER</span>
@@ -131,7 +684,7 @@
          MAIN IN-GAME HUD & DEVELOPER DIAGNOSTICS OVERLAY
          ======================================================================== -->
     <div id="hud-root" class="hidden">
-        <!-- TOP ROW: 2D Physics Character Portrait Boxes + Dev Menu Bar + Live DJ Monitor -->
+        <!-- TOP ROW: 2D Physics Character Portrait Boxes + Arcade Top Center Cluster + Live DJ Monitor -->
         <div class="hud-top-row">
             <div>
                 <div id="char-box-strip" class="hud-interactive"></div>
@@ -139,17 +692,45 @@
             </div>
 
             <div class="hud-top-center hud-interactive">
-                <div class="dev-top-toolbar">
-                    <button class="arcade-btn btn-gold" id="btn-open-dev-menu">🛠️ DEV MENU (ESC)</button>
+                <!-- Clean Arcade Quick Status & Hotkey Pill (Always Visible) -->
+                <div class="arcade-top-status-bar">
+                    <button type="button" class="top-pill-btn pill-gold" id="btn-open-pause-modal" title="Pause Race / Open Options (ESC)">⏸ PAUSE (ESC)</button>
+                    <button type="button" class="top-pill-btn" id="btn-toggle-studio-hud" title="Toggle between Clean Arcade HUD and Full Developer Studio HUD (TAB)">🎛️ HUD: ARCADE (TAB)</button>
+                    <button type="button" class="top-pill-btn" id="btn-cam-cycle" title="Cycle Camera Angle (V) or Hold Q/X to Look Back">📷 CAM: CHASE (V)</button>
+                    <button type="button" class="top-pill-btn" id="btn-toggle-rekordbox" title="Open Pioneer Rekordbox 7 Dual-Deck DJ Booth (K)">💿 DJ BOOTH (K)</button>
+                    <button type="button" class="top-pill-btn pill-gold" id="btn-top-dj-trainer" title="Open Human-in-the-Loop AI DJ Transition Rating &amp; Training Studio (T)">🧠 TRAIN DJ (T)</button>
+                    <button type="button" class="top-pill-btn" id="audio-status-btn" title="Toggle 138 BPM Audio Engine">🔊 138 BPM AUDIO</button>
+                    <span class="top-pill-badge hidden" id="hud-gamepad-badge">🎮 PAD ACTIVE</span>
+                </div>
+
+                <!-- Full Studio / Developer Toolbar (Visible in Studio HUD Mode) -->
+                <div class="dev-top-toolbar studio-only-el">
+                    <button class="arcade-btn btn-gold" id="btn-open-dev-menu">🛠️ MAIN MENU</button>
+                    <button class="arcade-btn btn-gold" id="btn-open-garage">🔧 GARAGE (G)</button>
+                    <button class="arcade-btn btn-gold" id="btn-hud-start-race">🏁 START RACE</button>
                     <button class="arcade-btn" id="btn-reset-car">↺ RESET CAR (R)</button>
-                    <button class="arcade-btn" id="btn-cam-cycle">📷 CAM: CHASE (V)</button>
                     <button class="arcade-btn" id="btn-vectors-toggle">🧭 3D VECTORS: OFF</button>
-                    <button class="arcade-btn btn-gold" id="btn-toggle-rekordbox">💿 REKORDBOX DJ (K)</button>
-                    <button id="audio-status-btn">🔊 138 BPM AUDIO</button>
                 </div>
-                <div class="sector-banner">
-                    <div id="hud-zone-name">TRACK 01 // STRAIGHTAWAY &amp; DRAG RUNWAY</div>
+
+                <!-- Namco Rave Racer Virtual Rear-View Mirror & Rival Radar Strip -->
+                <div class="rear-mirror-frame" id="rear-mirror-frame" title="Namco Rave Racer Virtual Rear-View Radar • Hold [X] or [Middle Mouse] to Look Back">
+                    <div class="mirror-bezel-top">
+                        <span>◀ REAR VIEW RADAR</span>
+                        <span id="rear-threat-status">CLEAR BEHIND</span>
+                        <span>LOOK BACK [C/MMB] ▶</span>
+                    </div>
+                    <canvas id="rear-mirror-canvas" width="290" height="44"></canvas>
                 </div>
+
+                <!-- Track Title + Live 4-Sector Transition Banner -->
+                <div class="sector-banner" id="sector-banner-box">
+                    <div class="sector-track-sub" id="hud-track-title">04 NAGAI BAYSHORE CIRCUIT</div>
+                    <div id="hud-zone-name">SECTOR 01 // EMERALD COAST PALMS</div>
+                </div>
+
+                <div id="race-split-banner" class="race-split-banner hidden">LAP 1 COMPLETE // 00:31.42 ★ BEST LAP</div>
+                <div id="arcade-style-callout" class="arcade-style-callout hidden">⚡ THREAD THE NEEDLE! +250 PTS</div>
+
                 <div class="lut-bar-wrap">
                     <span>2D VIBE LUT:</span>
                     <canvas id="lut-preview-canvas" width="256" height="16"></canvas>
@@ -185,8 +766,22 @@
             </div>
         </div>
 
-        <!-- MIDDLE ROW: LEFT DIAGNOSTIC COMPASS/INPUTS + RIGHT TUNING LAB -->
-        <div class="hud-mid-row">
+        <!-- WRONG-WAY & INCOMING RIVAL SLAM CENTER ALERTS -->
+        <div id="wrong-way-overlay" class="wrong-way-overlay hidden">
+            <div class="ww-box">
+                <div class="ww-icon">⚠️ WRONG WAY ⚠️</div>
+                <div class="ww-sub">TURN AROUND OR PRESS [R] TO RESET ON TRACK</div>
+            </div>
+        </div>
+
+        <div id="rival-proximity-bar" class="rival-proximity-bar hidden">
+            <span id="rival-prox-left" class="prox-indicator hidden">◀◀ KAI (8m)</span>
+            <span id="rival-prox-center" class="prox-indicator prox-danger hidden">⚠️ RIVAL SLAM INCOMING BEHIND! ⚠️</span>
+            <span id="rival-prox-right" class="prox-indicator hidden">MIRA (9m) ▶▶</span>
+        </div>
+
+        <!-- MIDDLE ROW: LEFT DIAGNOSTIC COMPASS/INPUTS (STUDIO MODE ONLY) -->
+        <div class="hud-mid-row studio-only-el">
             <!-- Live Driving Telemetry, Key Visualizer, Minimap & Vector Compass -->
             <div id="dev-diag-panel" class="hud-interactive">
                 <div class="diag-header">
@@ -220,43 +815,64 @@
             </div>
         </div>
 
-        <!-- BOTTOM ROW: Rage/Cockiness Meters + Interactive Test Dock + R4 Speedometer -->
+        <!-- BOTTOM ROW: Dedicated Arcade Minimap + Emotion Meters + Studio Dock + R4 Telemetry Cluster -->
         <div class="hud-bottom-row">
-            <!-- Pillar 4.2: Dual-Axis Emotion Meters & Fluid Vibe Selector -->
-            <div class="hud-emotion-panel hud-interactive">
-                <div class="emotion-row">
-                    <div class="emotion-header">
-                        <span>RAGE METER // &gt;75% BOILING (+35% RAM)</span>
-                        <span id="player-rage-val">22%</span>
+            <!-- Bottom-Left: Dedicated Arcade Course Radar Minimap + Dual-Axis Emotion Meters -->
+            <div class="hud-left-cluster hud-interactive">
+                <div class="arcade-minimap-box">
+                    <div class="minimap-header">
+                        <span id="minimap-track-lbl">COURSE RADAR // 4 SECTORS</span>
+                        <span id="minimap-prog-lbl" style="color:#ffe600;">0% LAP</span>
                     </div>
-                    <div class="emotion-track">
-                        <div class="emotion-threshold-line"></div>
-                        <div class="emotion-fill-rage" id="player-rage-fill" style="width:22%"></div>
-                    </div>
-                </div>
-
-                <div class="emotion-row">
-                    <div class="emotion-header">
-                        <span>COCKINESS // &gt;75% UNTOUCHABLE (303 + GOLD)</span>
-                        <span id="player-ego-val">40%</span>
-                    </div>
-                    <div class="emotion-track">
-                        <div class="emotion-threshold-line"></div>
-                        <div class="emotion-fill-ego" id="player-ego-fill" style="width:40%"></div>
+                    <canvas id="arcade-minimap-canvas" width="236" height="132"></canvas>
+                    <div class="minimap-legend">
+                        <span><i style="background:#00f5d4;"></i>YOU</span>
+                        <span><i style="background:#ff1e6b;"></i>KAI</span>
+                        <span><i style="background:#ffe600;"></i>MIRA</span>
+                        <span><i style="background:#bfff00;"></i>REX</span>
                     </div>
                 </div>
 
-                <div class="vibe-selector-row">
-                    <button class="vibe-btn active" data-vibe="pacific_sunset">1. PACIFIC SUNSET 84</button>
-                    <button class="vibe-btn" data-vibe="acid_warehouse">2. ACID WAREHOUSE 303</button>
-                    <button class="vibe-btn" data-vibe="midnight_shibuya">3. MIDNIGHT SHIBUYA R4</button>
-                    <button class="vibe-btn" data-vibe="cyber_flamingo">4. REDLINE SOLAR FLARE</button>
+                <!-- Pillar 4.2: Dual-Axis Emotion Meters & Fluid Vibe Selector -->
+                <div class="hud-emotion-panel">
+                    <div class="emotion-row">
+                        <div class="emotion-header">
+                            <span>RAGE METER // &gt;75% BOILING (+35% RAM)</span>
+                            <span id="player-rage-val">22%</span>
+                        </div>
+                        <div class="emotion-track">
+                            <div class="emotion-threshold-line"></div>
+                            <div class="emotion-fill-rage" id="player-rage-fill" style="width:22%"></div>
+                        </div>
+                    </div>
+
+                    <div class="emotion-row" style="margin-bottom:0;">
+                        <div class="emotion-header">
+                            <span>COCKINESS // &gt;75% UNTOUCHABLE (303 + GOLD)</span>
+                            <span id="player-ego-val">40%</span>
+                        </div>
+                        <div class="emotion-track">
+                            <div class="emotion-threshold-line"></div>
+                            <div class="emotion-fill-ego" id="player-ego-fill" style="width:40%"></div>
+                        </div>
+                    </div>
+
+                    <div class="vibe-selector-row studio-only-el">
+                        <button class="vibe-btn active" data-vibe="harigaya_flame_night">1. HARIGAYA FLAME</button>
+                        <button class="vibe-btn" data-vibe="pink_style_d1gp">2. PINK STYLE D1GP</button>
+                        <button class="vibe-btn" data-vibe="wild_horses_cobalt">3. WILD HORSES COBALT</button>
+                        <button class="vibe-btn" data-vibe="gravel_raver_camo">4. GRAVEL RAVERS CAMO</button>
+                        <button class="vibe-btn" data-vibe="cyber_flamingo">5. REDLINE SOLAR FLARE</button>
+                        <button class="vibe-btn" data-vibe="pacific_sunset">6. PACIFIC SUNSET 84</button>
+                        <button class="vibe-btn" data-vibe="acid_warehouse">7. ACID WAREHOUSE 303</button>
+                        <button class="vibe-btn" data-vibe="midnight_shibuya">8. MIDNIGHT SHIBUYA R4</button>
+                    </div>
                 </div>
             </div>
 
             <!-- Center Interactive Test & Feature Trigger Bar -->
             <div class="hud-action-dock hud-interactive">
-                <div class="action-btn-row">
+                <div class="action-btn-row studio-only-el">
                     <button class="arcade-btn btn-danger" id="btn-test-ram">💥 RAM &amp; BOX SLAM (C)</button>
                     <button class="arcade-btn btn-danger" id="btn-ego-shatter">⚡ EGO SHATTER</button>
                     <button class="arcade-btn btn-gold" id="btn-test-boost">🔥 SMUDGE BOOST (B)</button>
@@ -264,36 +880,265 @@
                     <button class="arcade-btn" id="btn-dj-drop">🎧 DJ DROP REACTION</button>
                     <button class="arcade-btn" id="btn-autopilot">🎮 AI CRUISE: OFF (P)</button>
                 </div>
-                <div class="controls-hint">
-                    <strong>W/S or ▲/▼:</strong> THROTTLE/BRAKE &nbsp;|&nbsp;
-                    <strong>A/D or ◀/▶:</strong> STEER L/R &nbsp;|&nbsp;
-                    <strong>SPACE/SHIFT:</strong> R4 DRIFT &nbsp;|&nbsp;
-                    <strong>R:</strong> RESET CAR &nbsp;|&nbsp;
-                    <strong>V:</strong> CAMERA &nbsp;|&nbsp;
-                    <strong>ESC:</strong> DEV MENU
+                <div class="controls-hint" id="hud-controls-hint">
+                    <strong>W/S:</strong> GAS/BRAKE &nbsp;|&nbsp;
+                    <strong>A/D:</strong> STEER &nbsp;|&nbsp;
+                    <strong>SPACE:</strong> R4 DRIFT &nbsp;|&nbsp;
+                    <strong>Q/E:</strong> SHIFT (MT) &nbsp;|&nbsp;
+                    <strong>V:</strong> CAM &nbsp;|&nbsp;
+                    <strong>TAB:</strong> STUDIO HUD &nbsp;|&nbsp;
+                    <strong>ESC:</strong> PAUSE
                 </div>
             </div>
 
-            <!-- Pillar 1: R4 Speedometer & Drift State Readout -->
+            <!-- Pillar 1: Authentic R4 / Rave Racer Speedometer, Tachometer, Gear & 3-Tier Drift Gauge -->
             <div class="hud-speed-panel hud-interactive">
                 <div class="race-pos-row">
                     <span id="hud-race-rank">1ST</span>
                     <span id="hud-lap-val">LAP 1 / 3</span>
                 </div>
-                <div class="speed-readout">
-                    <span id="hud-speed-val">0</span>
-                    <span class="speed-unit">KM/H</span>
+                <div class="hud-race-timers" id="hud-race-timers">
+                    <div class="rt-row"><span>TOTAL</span><strong id="hud-race-time">00:00.000</strong></div>
+                    <div class="rt-row"><span>LAP</span><strong id="hud-lap-time">00:00.000</strong></div>
+                    <div class="rt-row"><span>BEST</span><strong id="hud-best-lap" style="color:#ffe600;">--:--.---</strong></div>
                 </div>
-                <div class="speed-bar-bg">
-                    <div id="hud-speed-bar"></div>
+
+                <!-- Persistent Gear Box + Digital Speed Readout -->
+                <div class="r4-speed-gear-row">
+                    <div class="r4-gear-box" id="hud-gear-box" title="Click or press [T] to toggle AT / MT Transmission">
+                        <span class="r4-trans-pill" id="hud-trans-mode">AT</span>
+                        <strong class="r4-gear-num" id="hud-gear-val">1</strong>
+                        <span class="r4-gear-lbl">GEAR</span>
+                    </div>
+                    <div class="speed-readout">
+                        <span id="hud-speed-val">0</span>
+                        <span class="speed-unit" id="hud-speed-unit">KM/H</span>
+                    </div>
                 </div>
+
+                <!-- 16-Segment Arcade Tachometer Bar with Redline Flash -->
+                <div class="r4-tach-wrap">
+                    <div class="r4-tach-header">
+                        <span>TACHOMETER ×1000</span>
+                        <strong id="hud-rpm-val">1,200 RPM</strong>
+                    </div>
+                    <div class="r4-tach-segments" id="hud-tach-segments">
+                        <span class="tach-seg"></span><span class="tach-seg"></span><span class="tach-seg"></span><span class="tach-seg"></span>
+                        <span class="tach-seg"></span><span class="tach-seg"></span><span class="tach-seg"></span><span class="tach-seg"></span>
+                        <span class="tach-seg"></span><span class="tach-seg"></span><span class="tach-seg"></span><span class="tach-seg"></span>
+                        <span class="tach-seg seg-red"></span><span class="tach-seg seg-red"></span><span class="tach-seg seg-red"></span><span class="tach-seg seg-red"></span>
+                    </div>
+                </div>
+
+                <!-- Dedicated 3-Tier R4 Drift Charge & Boost Overdrive Meter -->
+                <div class="r4-drift-gauge-wrap">
+                    <div class="r4-drift-gauge-head">
+                        <span id="hud-drift-gauge-lbl">R4 DRIFT CHARGE</span>
+                        <strong id="hud-slip-angle-val">0.0° SLIP</strong>
+                    </div>
+                    <div class="r4-drift-tiers-track">
+                        <div class="drift-tier-marker" style="left:35%" title="Tier 1 Spark Boost (35%)">T1</div>
+                        <div class="drift-tier-marker" style="left:65%" title="Tier 2 Flame Boost (65%)">T2</div>
+                        <div class="drift-tier-marker" style="left:95%" title="Tier 3 Redline Overdrive (95%)">T3</div>
+                        <div id="hud-drift-charge-fill" class="r4-drift-charge-fill" style="width:0%"></div>
+                    </div>
+                </div>
+
                 <div id="hud-drift-badge" class="hud-badge">GRIP // READY</div>
             </div>
         </div>
     </div>
 
+    <!-- ========================================================================
+         PRE-RACE 3-2-1-GO COUNTDOWN & BOOST-START LAUNCH OVERLAY
+         ======================================================================== -->
+    <div id="race-countdown-overlay" class="race-countdown-overlay hidden">
+        <div class="cd-card">
+            <div class="cd-eyebrow" id="cd-race-subtitle">OFFICIAL GRAND PRIX // 3 LAPS • 4 RACERS</div>
+            <div class="cd-track-title" id="cd-track-title">TRACK 04 // FULL NAGAI BAYSHORE CIRCUIT</div>
+
+            <!-- 4-Lamp Arcade Starting Light Gantry -->
+            <div class="cd-lights-gantry">
+                <div class="cd-lamp" id="cd-lamp-1"></div>
+                <div class="cd-lamp" id="cd-lamp-2"></div>
+                <div class="cd-lamp" id="cd-lamp-3"></div>
+                <div class="cd-lamp" id="cd-lamp-4"></div>
+            </div>
+
+            <!-- Giant Kinetic 3 - 2 - 1 - GO!! Readout -->
+            <div class="cd-number-stage">
+                <div class="cd-main-text" id="cd-main-text">READY</div>
+            </div>
+
+            <!-- Interactive R4 Boost-Start Rev Tachometer -->
+            <div class="cd-rev-box" id="cd-rev-box">
+                <div class="cd-rev-header">
+                    <span id="cd-rev-hint">HOLD [W / ▲] TO REV ENGINE — HIT GOLD SWEET SPOT AT GO!!</span>
+                    <strong id="cd-rev-rpm">1,200 RPM</strong>
+                </div>
+                <div class="cd-rev-track">
+                    <div class="cd-rev-sweetspot" title="Perfect Launch Boost Zone (6,500–8,400 RPM)"></div>
+                    <div class="cd-rev-fill" id="cd-rev-fill" style="width:12%"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ========================================================================
+         POST-RACE STANDINGS, LAP SPLITS & TELEMETRY STATS MODAL
+         ======================================================================== -->
+    <div id="race-results-modal" class="modal-overlay hidden hud-interactive">
+        <div class="race-results-window">
+            <div class="rr-header">
+                <div>
+                    <div class="rr-eyebrow" id="rr-track-meta">OFFICIAL GRAND PRIX RESULTS // 3 LAPS</div>
+                    <h2 id="rr-placement-title">🏆 1ST PLACE // RAVE VICTORY!!</h2>
+                    <div class="rr-car-used" id="rr-car-meta">REN "PHASE" • 01 POCKET ROCKET</div>
+                </div>
+                <div class="rr-grade-box">
+                    <div class="rr-grade-lbl">STYLE GRADE</div>
+                    <div class="rr-grade-letter" id="rr-style-grade">S+</div>
+                    <div class="rr-grade-pts" id="rr-style-score">48,200 PTS</div>
+                </div>
+            </div>
+
+            <div class="rr-body-grid">
+                <!-- LEFT COLUMN: 4-CAR FINAL STANDINGS + PLAYER LAP SPLITS -->
+                <div class="rr-col">
+                    <div class="rr-section-box">
+                        <div class="rr-section-title">🏁 FINAL RACE STANDINGS</div>
+                        <table class="rr-standings-table">
+                            <thead>
+                                <tr>
+                                    <th>POS</th>
+                                    <th>DRIVER &amp; MACHINE</th>
+                                    <th>FINISH / GAP</th>
+                                    <th>BEST LAP</th>
+                                </tr>
+                            </thead>
+                            <tbody id="rr-standings-tbody"></tbody>
+                        </table>
+                    </div>
+
+                    <div class="rr-section-box">
+                        <div class="rr-section-title">⏱️ LAP-BY-LAP SPLIT BREAKDOWN</div>
+                        <div id="rr-laps-breakdown" class="rr-laps-list"></div>
+                    </div>
+                </div>
+
+                <!-- RIGHT COLUMN: COMPREHENSIVE DRIVING, DRIFT & COMBAT TELEMETRY STATS -->
+                <div class="rr-col">
+                    <div class="rr-section-box">
+                        <div class="rr-section-title">📊 RACE PERFORMANCE &amp; STYLE TELEMETRY</div>
+                        <div class="rr-stats-grid">
+                            <div class="rr-stat-card">
+                                <span>TOTAL RACE TIME</span>
+                                <strong id="rr-stat-total-time" class="text-cyan">01:36.42</strong>
+                            </div>
+                            <div class="rr-stat-card">
+                                <span>BEST LAP TIME</span>
+                                <strong id="rr-stat-best-lap" class="text-gold">00:31.18</strong>
+                            </div>
+                            <div class="rr-stat-card">
+                                <span>TOP SPEED REACHED</span>
+                                <strong id="rr-stat-top-speed">342 KM/H</strong>
+                            </div>
+                            <div class="rr-stat-card">
+                                <span>AVERAGE SPEED</span>
+                                <strong id="rr-stat-avg-speed">268 KM/H</strong>
+                            </div>
+                            <div class="rr-stat-card">
+                                <span>TOTAL DRIFT DISTANCE</span>
+                                <strong id="rr-stat-drift-dist" class="text-cyan">1,840m (18.4s)</strong>
+                            </div>
+                            <div class="rr-stat-card">
+                                <span>LONGEST SINGLE DRIFT</span>
+                                <strong id="rr-stat-longest-drift">420m</strong>
+                            </div>
+                            <div class="rr-stat-card">
+                                <span>PEAK DRIFT SLIP ANGLE</span>
+                                <strong id="rr-stat-peak-slip">36.8°</strong>
+                            </div>
+                            <div class="rr-stat-card">
+                                <span>DRIFT BOOSTS UNLEASHED</span>
+                                <strong id="rr-stat-boosts" class="text-gold">8 (3× TIER 3)</strong>
+                            </div>
+                            <div class="rr-stat-card">
+                                <span>GRID LAUNCH REACTION</span>
+                                <strong id="rr-stat-launch">⚡ PERFECT LAUNCH</strong>
+                            </div>
+                            <div class="rr-stat-card">
+                                <span>RIVALS SLAMMED / RAMS</span>
+                                <strong id="rr-stat-rams">4 SLAMS</strong>
+                            </div>
+                            <div class="rr-stat-card">
+                                <span>NEAR-MISSES THREADED</span>
+                                <strong id="rr-stat-nearmiss">6</strong>
+                            </div>
+                            <div class="rr-stat-card">
+                                <span>WALL CONTACTS / CLEAN</span>
+                                <strong id="rr-stat-walls">0 // FLAWLESS!</strong>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="rr-footer-actions">
+                <button type="button" class="arcade-btn btn-gold rr-action-btn" id="btn-rr-rematch">🔄 RACE AGAIN (3-2-1 COUNTDOWN)</button>
+                <button type="button" class="arcade-btn rr-action-btn" id="btn-rr-setup">🏆 CHANGE CIRCUIT / LAPS</button>
+                <button type="button" class="arcade-btn rr-action-btn" id="btn-rr-garage">🔧 GARAGE &amp; CUSTOMIZER</button>
+                <button type="button" class="arcade-btn rr-action-btn" id="btn-rr-freedrive">🎥 CONTINUE VICTORY DRIVE</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ========================================================================
+         DEDICATED IN-RACE PAUSE & QUICK SETTINGS MODAL
+         ======================================================================== -->
+    <div id="race-pause-modal" class="modal-overlay hidden hud-interactive">
+        <div class="pause-modal-window">
+            <div class="pm-header">
+                <div>
+                    <div class="pm-eyebrow">SYSTEM 22 × REKORDBOX 7 // SESSION PAUSED</div>
+                    <h2 id="pm-track-title">⏸ RACE PAUSED</h2>
+                </div>
+                <span class="pm-badge" id="pm-race-status">OFFICIAL GRAND PRIX</span>
+            </div>
+
+            <!-- Quick Telemetry & Accessibility Settings -->
+            <div class="pm-settings-grid">
+                <div class="pm-setting-item">
+                    <span>SPEEDOMETER UNITS</span>
+                    <button type="button" class="mini-dev-btn active" id="btn-pm-units">KM/H (METRIC)</button>
+                </div>
+                <div class="pm-setting-item">
+                    <span>TRANSMISSION GEARBOX</span>
+                    <button type="button" class="mini-dev-btn active" id="btn-pm-trans">⚙️ AT (AUTOMATIC)</button>
+                </div>
+                <div class="pm-setting-item">
+                    <span>HUD LAYOUT MODE</span>
+                    <button type="button" class="mini-dev-btn" id="btn-pm-hud-mode">🎛️ CLEAN ARCADE HUD</button>
+                </div>
+                <div class="pm-setting-item">
+                    <span>CAMERA VIEW (V)</span>
+                    <button type="button" class="mini-dev-btn" id="btn-pm-camera">📷 CHASE CAM</button>
+                </div>
+            </div>
+
+            <div class="pm-actions-col">
+                <button type="button" class="arcade-btn btn-gold pm-big-btn" id="btn-pm-resume">▶ RESUME SESSION (ESC)</button>
+                <button type="button" class="arcade-btn pm-big-btn" id="btn-pm-restart">🔄 RESTART RACE / TRACK (R)</button>
+                <button type="button" class="arcade-btn pm-big-btn" id="btn-pm-garage">🔧 OPEN GARAGE &amp; CAR CUSTOMIZER (G)</button>
+                <button type="button" class="arcade-btn pm-big-btn" id="btn-pm-race-setup">🏆 CHANGE CIRCUIT / LAPS</button>
+                <button type="button" class="arcade-btn pm-big-btn" id="btn-pm-dj-studio">🎧 OPEN REKORDBOX DJ STUDIO (K)</button>
+                <button type="button" class="arcade-btn btn-danger pm-big-btn" id="btn-pm-title">🎬 EXIT TO ARCADE TITLE SCREEN</button>
+            </div>
+        </div>
+    </div>
+
     <!-- Right-Side Collapsible Physics, Shader & Triad Live Tuning Lab -->
-    <div id="tuning-drawer" class="hud-interactive hidden">
+    <div id="tuning-drawer" class="hud-interactive hidden studio-only-el">
         <div class="tuning-header" id="btn-toggle-tuning">
             <span>⚙️ PHYSICS &amp; SHADER TUNING LAB</span>
             <span>▾</span>
@@ -339,8 +1184,24 @@
                 <input type="range" id="slider-ink" min="0" max="1" step="0.05" value="0.90" />
             </div>
             <div class="slider-row">
+                <div class="slider-lbl"><span>JSR Pixel &amp; Bayer Dither</span><span id="val-jsr-dither">90%</span></div>
+                <input type="range" id="slider-jsr-dither" min="0" max="1" step="0.05" value="0.90" />
+            </div>
+            <div class="slider-row">
+                <div class="slider-lbl"><span>Pixel_Tempys Facet Ink</span><span id="val-facet-ink">92%</span></div>
+                <input type="range" id="slider-facet-ink" min="0" max="1" step="0.05" value="0.92" />
+            </div>
+            <div class="slider-row">
                 <div class="slider-lbl"><span>Redline Speed Lines</span><span id="val-speedlines">85%</span></div>
                 <input type="range" id="slider-speedlines" min="0" max="1" step="0.05" value="0.85" />
+            </div>
+            <div class="slider-row">
+                <div class="slider-lbl"><span>R4 Taillight Ribbons</span><span id="val-taillight-trails">100%</span></div>
+                <input type="range" id="slider-taillight-trails" min="0" max="1.5" step="0.05" value="1.0" />
+            </div>
+            <div class="slider-row">
+                <div class="slider-lbl"><span>Camera Drift Swing</span><span id="val-drift-swing">100%</span></div>
+                <input type="range" id="slider-drift-swing" min="0" max="1.5" step="0.05" value="1.0" />
             </div>
         </div>
     </div>
@@ -349,12 +1210,19 @@
     <div id="world-map-modal" class="modal-overlay hidden hud-interactive">
         <div class="world-map-window">
             <div class="wm-header">
-                <h2>🗺️ REGIONAL HIGHWAY MAP // DIJKSTRA LANDMARK ROUTE SOLVER</h2>
+                <h2>🗺️ TOKYO BAYSHORE HIGHWAY NETWORK // DIJKSTRA ROUTE SOLVER</h2>
                 <button class="arcade-btn" id="btn-close-map">✕ CLOSE MAP</button>
             </div>
-            <p style="font-size:12px;color:#cfc9ec;margin-bottom:14px;">
-                Select a destination venue. The route solver calculates the highway path from <strong>Home Base (Nagai Coastal Deck)</strong> and generates a diegetic <strong>Landmark Drive-Over Loading Screen</strong> based on the landmarks along that stretch of highway while the Track DJ's bass fades in from across the bay.
+            <p style="font-size:12px;color:#cfc9ec;margin-bottom:10px;">
+                Hover or click any destination node or card below. The Dijkstra solver highlights the shortest expressway route from <strong>Home Base (Nagai Coastal Deck)</strong> and renders a diegetic <strong>Landmark Drive-Over Loading Screen</strong> while the Track DJ's bass fades in across the bay.
             </p>
+            <div class="wm-network-wrap">
+                <canvas id="world-map-canvas" width="810" height="230"></canvas>
+                <div class="wm-route-preview-bar" id="wm-route-preview-bar">
+                    <span>📍 SELECTED ROUTE:</span>
+                    <strong id="wm-route-summary">HOME BASE → BAYSHORE INTERCHANGE → EMERALD BAY CIRCUIT (7.7 KM)</strong>
+                </div>
+            </div>
             <div id="venue-list"></div>
         </div>
     </div>
@@ -371,26 +1239,48 @@
         </div>
     </div>
 
-    <!-- Pillar 3.4: Pioneer Rekordbox Dual-Deck MP3 Analyzer & AI DJ Controller Replica -->
+    <!-- Pillar 3.4: Pioneer Rekordbox 7 + CDJ-3000 + DJM-A9 Dual-Deck Analyzer & AI DJ Controller Replica -->
     <div id="rekordbox-studio-panel" class="hidden hud-interactive">
         <div class="rb-header">
             <div class="rb-header-left">
-                <span class="rb-brand">rekordbox // RAVE RACER AI DJ REPLICA</span>
-                <span id="rb-status-msg">READY — DRAG &amp; DROP ANY .MP3 FILE ONTO WINDOW OR CLICK LOAD MP3</span>
+                <span class="rb-brand">rekordbox 7 // CDJ-3000 &amp; DJM-A9 AI DJ STUDIO</span>
+                <span id="rb-status-msg">READY — 121 PRE-TRAINED SONGS INDEXED FROM /MUSIC</span>
             </div>
             <div class="rb-header-right">
-                <label class="rb-file-btn rb-folder-btn" title="Select an entire folder of songs (.mp3/.wav/.ogg/.flac) for Camelot Wheel & BPM DJ rotation">
+                <label class="rb-file-btn rb-folder-btn" title="Select your Music folder (.mp3/.wav/.ogg/.flac) for zero-wait Camelot Wheel &amp; BPM DJ rotation">
                     📁 LOAD SONG FOLDER
                     <input type="file" id="input-mp3-folder" webkitdirectory directory multiple accept="audio/*,.mp3,.wav,.ogg,.flac,.m4a" hidden />
                 </label>
+                <button class="mini-dev-btn active" id="btn-rb-wf-mode" title="Toggle between Pioneer CDJ-3000 3-Band (Blue/Amber/White) and Classic RGB Waveforms">🌊 WF: 3-BAND</button>
+                <select class="rb-header-select" id="select-rb-ai-style" title="Select AI DJ Kinetix Transition Technique">
+                    <option value="AUTO">🎛️ STYLE: AUTO GENRE</option>
+                    <option value="BASS_SWAP">🔊 ISOLATOR BASS-SWAP</option>
+                    <option value="UKG_DUB_SPIN">🌀 UKG DUB-ECHO + BACKSPIN</option>
+                    <option value="STEM_VOCAL">🎤 3-STEM ACAPELLA FLOAT</option>
+                    <option value="LOOP_ROLL">🔁 BOILER ROOM LOOP-ROLL</option>
+                    <option value="ECHO_FREEZE_CUT">❄️ ECHO-FREEZE FAKE-DROP CUT</option>
+                </select>
+                <select class="rb-header-select" id="select-rb-trans-length" title="Select Transition Duration in 4-Beat Bars (Reverse-Timed to land on Incoming Main Drop!)">
+                    <option value="AUTO">⏱️ LENGTH: AUTO (8–16 BARS)</option>
+                    <option value="4">⚡ 4 BARS (~9s QUICK CUT)</option>
+                    <option value="8">🎛️ 8 BARS (~18s 1-PHRASE)</option>
+                    <option value="16">🌊 16 BARS (~33s 2-PHRASE BLEND)</option>
+                    <option value="32">🌀 32 BARS (~65s MARATHON MIX)</option>
+                    <option value="64">🔥 64 BARS (~2m PROGRESSIVE)</option>
+                </select>
+                <button class="mini-dev-btn active" id="btn-rb-coach-toggle" title="Toggle Live Educational DJ Coach Telemetry Strip">🎓 DJ COACH: ON</button>
                 <button class="mini-dev-btn active" id="btn-rb-source-mode" title="Switch between Dual-Deck Rekordbox MP3 Analyzer and Procedural 5-Stem Synth">💿 SOURCE: REKORDBOX DECKS</button>
-                <button class="mini-dev-btn active" id="btn-rb-aidj-toggle" title="Let AI DJ Kinetix automatically manipulate EQs, Filters, Entry/Exit Loops, and Camelot Crossfades">🤖 AI DJ AUTO-MIX: ON</button>
-                <button class="mini-dev-btn" id="btn-rb-auto-transition" title="Trigger a beat-matched Camelot crossfade & bass-swap between Deck 1 and Deck 2">🔀 CAMELOT TRANSITION</button>
+                <button class="mini-dev-btn active" id="btn-rb-aidj-toggle" title="Let AI DJ Kinetix automatically manipulate Stems, EQs, Sound Color FX, Entry/Exit Loops, and Camelot Crossfades">🤖 AI DJ AUTO-MIX: ON</button>
+                <button class="mini-dev-btn" id="btn-rb-trainer-toggle" title="Open Human-in-the-Loop RLHF Transition Rating &amp; AI Training Studio (T)">🧠 RLHF TRAINER (T)</button>
+                <button class="mini-dev-btn" id="btn-rb-auto-transition" title="Trigger a beat- and bar-locked Camelot transition between Deck 1 and Deck 2">🔀 CAMELOT TRANSITION</button>
                 <button class="mini-dev-btn" id="btn-close-rekordbox">✕ HIDE (K)</button>
             </div>
         </div>
 
-        <!-- Dual-Deck Parallel RGB Waveforms, Beatgrids, CDJ Platters & Mixer Canvas -->
+        <!-- Live Educational DJ Coach Telemetry Strip -->
+        <div id="rb-coach-banner" class="rb-coach-banner">🎓 DJ COACH: AUTO-TRIM LUFS STAGED (-12 dBFS) // PLL BEAT &amp; BAR SYNC LOCKED</div>
+
+        <!-- Dual-Deck Parallel 3-Band/RGB Waveforms, CDJ-3000 4-Beat Phase Meter, Jog Platters & DJM-A9 Mixer Canvas -->
         <canvas id="rekordbox-canvas" width="840" height="224"></canvas>
 
         <!-- Dual-Deck Hardware Controls Strip (Deck 1 | Center Crossfader | Deck 2) -->
@@ -400,45 +1290,75 @@
                 <div class="rb-deck-top-row">
                     <strong style="color:#00f5d4;">DECK 1</strong>
                     <label class="rb-file-btn">
-                        📂 LOAD MP3
+                        📂 LOAD
                         <input type="file" id="input-mp3-deck1" accept="audio/*,.mp3,.wav,.ogg,.flac,.m4a" hidden />
                     </label>
-                    <button class="rb-sm-btn" id="btn-d1-play">▶/⏸</button>
-                    <button class="rb-sm-btn" id="btn-d1-sync">SYNC</button>
-                    <button class="rb-sm-btn" id="btn-d1-master">MASTER</button>
-                    <button class="rb-sm-btn" id="btn-d1-export" title="Export analyzed Beatgrid, BPM & RGB Waveform to JSON">💾 JSON</button>
+                    <button class="rb-sm-btn" id="btn-d1-play" title="Play / Pause Deck 1 (Phase-Aligned to Master)">▶/⏸</button>
+                    <button class="rb-sm-btn active" id="btn-d1-sync" title="CDJ-3000 Sample-Accurate PLL Beat &amp; Bar Sync">SYNC</button>
+                    <button class="rb-sm-btn active" id="btn-d1-master" title="Set Deck 1 as Tempo &amp; Phase Master">MASTER</button>
+                    <button class="rb-sm-btn" id="btn-d1-keysync" title="Harmonic Key Sync (-2..+2 Semitones to match Master Camelot Key)">🎹 KEY</button>
+                    <button class="rb-sm-btn" id="btn-d1-slip" title="CDJ-3000 Slip Mode (Silent Ghost Timeline continues under Loops &amp; Backspins)">SLIP</button>
+                    <button class="rb-sm-btn active" id="btn-d1-activeloop" title="Rekordbox Red-and-White Striped Active Safety Loop at Mix-Out Point">ACT LP</button>
+                    <button class="rb-sm-btn" id="btn-d1-backspin" title="Trigger UKG / Boiler Room Vinyl Whip Backspin">⏪ SPIN</button>
+                    <button class="rb-sm-btn" id="btn-d1-export" title="Export analyzed Beatgrid, BPM, Phrases &amp; RGB Waveform to JSON">💾 JSON</button>
+                </div>
+                <div class="rb-stem-row">
+                    <span class="rb-pad-lbl">STEMS:</span>
+                    <button class="rb-stem-btn stem-drums active" data-deck="1" data-stem="drums" title="Toggle Drums / Sub Stem (Low-Pass < 260Hz)">🥁 DRUMS</button>
+                    <button class="rb-stem-btn stem-vocal active" data-deck="1" data-stem="vocal" title="Toggle Vocal Stem (Formant Band 320Hz–3.6kHz)">🎤 VOCAL</button>
+                    <button class="rb-stem-btn stem-inst active" data-deck="1" data-stem="inst" title="Toggle Inst / Hi-Hat Stem (> 3.4kHz)">🎹 INST</button>
+                    <span class="rb-pad-lbl" style="margin-left:4px;">CFX:</span>
+                    <select class="rb-cfx-select" id="select-d1-cfx" title="DJM-A9 Sound Color FX Mode for Deck 1">
+                        <option value="FILTER">FILTER</option>
+                        <option value="DUB_ECHO">DUB ECHO</option>
+                        <option value="NOISE">NOISE</option>
+                        <option value="SPACE">SPACE</option>
+                        <option value="SWEEP">SWEEP</option>
+                        <option value="CRUSH">CRUSH</option>
+                    </select>
+                    <button class="rb-sm-btn" id="btn-d1-beatfx" title="Toggle Beat-Synced DJM-A9 Beat FX (Echo / Trans Gate / Flanger)">FX: OFF</button>
                 </div>
                 <div class="rb-pad-row">
-                    <span class="rb-pad-lbl">HOT CUES:</span>
-                    <button class="rb-cue-btn cue-a" data-deck="1" data-cue="0">A</button>
-                    <button class="rb-cue-btn cue-b" data-deck="1" data-cue="1">B</button>
-                    <button class="rb-cue-btn cue-c" data-deck="1" data-cue="2">C</button>
-                    <button class="rb-cue-btn cue-d" data-deck="1" data-cue="3">D</button>
-                    <span class="rb-pad-lbl" style="margin-left:6px;">LOOP:</span>
-                    <button class="rb-loop-btn" data-deck="1" data-loop="0.25">1/4</button>
-                    <button class="rb-loop-btn" data-deck="1" data-loop="0.5">1/2</button>
-                    <button class="rb-loop-btn" data-deck="1" data-loop="1">1</button>
-                    <button class="rb-loop-btn" data-deck="1" data-loop="2">2</button>
-                    <button class="rb-loop-btn" data-deck="1" data-loop="4">4</button>
-                    <button class="rb-loop-btn" data-deck="1" data-loop="0">EXIT</button>
+                    <span class="rb-pad-lbl">CUES:</span>
+                    <button class="rb-cue-btn cue-a" data-deck="1" data-cue="0" title="Hot Cue A (Entry)">A</button>
+                    <button class="rb-cue-btn cue-b" data-deck="1" data-cue="1" title="Hot Cue B">B</button>
+                    <button class="rb-cue-btn cue-c" data-deck="1" data-cue="2" title="Hot Cue C">C</button>
+                    <button class="rb-cue-btn cue-d" data-deck="1" data-cue="3" title="Hot Cue D">D</button>
+                    <button class="rb-cue-btn cue-e" data-deck="1" data-cue="4" title="Hot Cue E">E</button>
+                    <button class="rb-cue-btn cue-f" data-deck="1" data-cue="5" title="Hot Cue F">F</button>
+                    <button class="rb-cue-btn cue-g" data-deck="1" data-cue="6" title="Hot Cue G">G</button>
+                    <button class="rb-cue-btn cue-h" data-deck="1" data-cue="7" title="Hot Cue H (Exit)">H</button>
+                    <span class="rb-pad-lbl" style="margin-left:3px;">LP:</span>
+                    <button class="rb-loop-scale-btn" data-deck="1" data-scale="0.5" title="Halve Active Loop Length (1/2x)">½×</button>
+                    <button class="rb-loop-scale-btn" data-deck="1" data-scale="2" title="Double Active Loop Length (2x)">2×</button>
+                    <button class="rb-loop-btn" data-deck="1" data-loop="4" title="4-Beat Bar Loop">4B</button>
+                    <button class="rb-loop-btn" data-deck="1" data-loop="0" title="Exit Active Loop">EXIT</button>
+                    <button class="rb-jump-btn" data-deck="1" data-jump="-4" title="Beat Jump Back 1 Bar (-4 Beats)">◄4</button>
+                    <button class="rb-jump-btn" data-deck="1" data-jump="4" title="Beat Jump Forward 1 Bar (+4 Beats)">4►</button>
                 </div>
                 <div class="rb-eq-row">
-                    <label>LOW <input type="range" id="slider-d1-low" min="-1" max="1" step="0.05" value="0" /></label>
-                    <label>MID <input type="range" id="slider-d1-mid" min="-1" max="1" step="0.05" value="0" /></label>
-                    <label>HI <input type="range" id="slider-d1-hi" min="-1" max="1" step="0.05" value="0" /></label>
-                    <label>FLTR <input type="range" id="slider-d1-fltr" min="-1" max="1" step="0.05" value="0" /></label>
+                    <label title="Pre-Fader Input Gain Staging (-12dB to +9dB, Auto-Staged to -12 dBFS)"><span>TRIM</span><input type="range" id="slider-d1-trim" min="-12" max="9" step="0.2" value="0" /></label>
+                    <label><button class="rb-kill-btn" data-deck="1" data-kill="low" title="Isolator LOW Kill (-∞dB)">LOW</button><input type="range" id="slider-d1-low" min="-1" max="1" step="0.05" value="0" /></label>
+                    <label><button class="rb-kill-btn" data-deck="1" data-kill="mid" title="Isolator MID Kill (-∞dB)">MID</button><input type="range" id="slider-d1-mid" min="-1" max="1" step="0.05" value="0" /></label>
+                    <label><button class="rb-kill-btn" data-deck="1" data-kill="high" title="Isolator HI Kill (-∞dB)">HI</button><input type="range" id="slider-d1-hi" min="-1" max="1" step="0.05" value="0" /></label>
+                    <label><span>CFX</span><input type="range" id="slider-d1-fltr" min="-1" max="1" step="0.05" value="0" /></label>
+                    <label title="DJM-A9 Channel 1 Vertical Upfader (0% to 100%)"><span>CH1</span><input type="range" id="slider-d1-vol" min="0" max="1" step="0.02" value="1" /></label>
                 </div>
             </div>
 
-            <!-- CENTER MIXER CROSSFADER -->
+            <!-- CENTER DJM-A9 MIXER CROSSFADER -->
             <div class="rb-mixer-center">
-                <div class="rb-xfade-lbl">CROSSFADER (D1 ↔ D2)</div>
+                <div class="rb-xfade-lbl">MAGVEL FADER (D1 ↔ D2)</div>
                 <input type="range" id="slider-rb-crossfader" min="-1" max="1" step="0.02" value="-0.92" />
                 <div class="rb-xfade-ends">
                     <span style="color:#00f5d4;">◀ DECK 1</span>
                     <span style="color:#ff1e6b;">DECK 2 ▶</span>
                 </div>
-                <div class="rb-drop-hint">DROP .MP3 LEFT = D1 | RIGHT = D2</div>
+                <div class="rb-mixer-btns">
+                    <button class="rb-sm-btn" id="btn-rb-xfade-curve" title="Toggle Crossfader Curve (Smooth Equal-Power vs Scratch Cut)">CURVE: SMOOTH</button>
+                    <button class="rb-sm-btn" id="btn-rb-cue-next" title="Auto-Pick &amp; Cue Next Best Camelot Harmonic Track on Standby Deck">⏭️ CUE NEXT</button>
+                </div>
+                <div class="rb-drop-hint">SCRUB WAVEFORM OR JOG WHEEL</div>
             </div>
 
             <!-- DECK 2 CONTROLS (MAGENTA) -->
@@ -446,42 +1366,213 @@
                 <div class="rb-deck-top-row">
                     <strong style="color:#ff1e6b;">DECK 2</strong>
                     <label class="rb-file-btn rb-file-btn-2">
-                        📂 LOAD MP3
+                        📂 LOAD
                         <input type="file" id="input-mp3-deck2" accept="audio/*,.mp3,.wav,.ogg,.flac,.m4a" hidden />
                     </label>
-                    <button class="rb-sm-btn" id="btn-d2-play">▶/⏸</button>
-                    <button class="rb-sm-btn" id="btn-d2-sync">SYNC</button>
-                    <button class="rb-sm-btn" id="btn-d2-master">MASTER</button>
-                    <button class="rb-sm-btn" id="btn-d2-export" title="Export analyzed Beatgrid, BPM & RGB Waveform to JSON">💾 JSON</button>
+                    <button class="rb-sm-btn" id="btn-d2-play" title="Play / Pause Deck 2 (Phase-Aligned to Master)">▶/⏸</button>
+                    <button class="rb-sm-btn active" id="btn-d2-sync" title="CDJ-3000 Sample-Accurate PLL Beat &amp; Bar Sync">SYNC</button>
+                    <button class="rb-sm-btn" id="btn-d2-master" title="Set Deck 2 as Tempo &amp; Phase Master">MASTER</button>
+                    <button class="rb-sm-btn" id="btn-d2-keysync" title="Harmonic Key Sync (-2..+2 Semitones to match Master Camelot Key)">🎹 KEY</button>
+                    <button class="rb-sm-btn" id="btn-d2-slip" title="CDJ-3000 Slip Mode (Silent Ghost Timeline continues under Loops &amp; Backspins)">SLIP</button>
+                    <button class="rb-sm-btn active" id="btn-d2-activeloop" title="Rekordbox Red-and-White Striped Active Safety Loop at Mix-Out Point">ACT LP</button>
+                    <button class="rb-sm-btn" id="btn-d2-backspin" title="Trigger UKG / Boiler Room Vinyl Whip Backspin">⏪ SPIN</button>
+                    <button class="rb-sm-btn" id="btn-d2-export" title="Export analyzed Beatgrid, BPM, Phrases &amp; RGB Waveform to JSON">💾 JSON</button>
+                </div>
+                <div class="rb-stem-row">
+                    <span class="rb-pad-lbl">STEMS:</span>
+                    <button class="rb-stem-btn stem-drums active" data-deck="2" data-stem="drums" title="Toggle Drums / Sub Stem (Low-Pass < 260Hz)">🥁 DRUMS</button>
+                    <button class="rb-stem-btn stem-vocal active" data-deck="2" data-stem="vocal" title="Toggle Vocal Stem (Formant Band 320Hz–3.6kHz)">🎤 VOCAL</button>
+                    <button class="rb-stem-btn stem-inst active" data-deck="2" data-stem="inst" title="Toggle Inst / Hi-Hat Stem (> 3.4kHz)">🎹 INST</button>
+                    <span class="rb-pad-lbl" style="margin-left:4px;">CFX:</span>
+                    <select class="rb-cfx-select" id="select-d2-cfx" title="DJM-A9 Sound Color FX Mode for Deck 2">
+                        <option value="FILTER">FILTER</option>
+                        <option value="DUB_ECHO">DUB ECHO</option>
+                        <option value="NOISE">NOISE</option>
+                        <option value="SPACE">SPACE</option>
+                        <option value="SWEEP">SWEEP</option>
+                        <option value="CRUSH">CRUSH</option>
+                    </select>
+                    <button class="rb-sm-btn" id="btn-d2-beatfx" title="Toggle Beat-Synced DJM-A9 Beat FX (Echo / Trans Gate / Flanger)">FX: OFF</button>
                 </div>
                 <div class="rb-pad-row">
-                    <span class="rb-pad-lbl">HOT CUES:</span>
-                    <button class="rb-cue-btn cue-a" data-deck="2" data-cue="0">A</button>
-                    <button class="rb-cue-btn cue-b" data-deck="2" data-cue="1">B</button>
-                    <button class="rb-cue-btn cue-c" data-deck="2" data-cue="2">C</button>
-                    <button class="rb-cue-btn cue-d" data-deck="2" data-cue="3">D</button>
-                    <span class="rb-pad-lbl" style="margin-left:6px;">LOOP:</span>
-                    <button class="rb-loop-btn" data-deck="2" data-loop="0.25">1/4</button>
-                    <button class="rb-loop-btn" data-deck="2" data-loop="0.5">1/2</button>
-                    <button class="rb-loop-btn" data-deck="2" data-loop="1">1</button>
-                    <button class="rb-loop-btn" data-deck="2" data-loop="2">2</button>
-                    <button class="rb-loop-btn" data-deck="2" data-loop="4">4</button>
-                    <button class="rb-loop-btn" data-deck="2" data-loop="0">EXIT</button>
+                    <span class="rb-pad-lbl">CUES:</span>
+                    <button class="rb-cue-btn cue-a" data-deck="2" data-cue="0" title="Hot Cue A (Entry)">A</button>
+                    <button class="rb-cue-btn cue-b" data-deck="2" data-cue="1" title="Hot Cue B">B</button>
+                    <button class="rb-cue-btn cue-c" data-deck="2" data-cue="2" title="Hot Cue C">C</button>
+                    <button class="rb-cue-btn cue-d" data-deck="2" data-cue="3" title="Hot Cue D">D</button>
+                    <button class="rb-cue-btn cue-e" data-deck="2" data-cue="4" title="Hot Cue E">E</button>
+                    <button class="rb-cue-btn cue-f" data-deck="2" data-cue="5" title="Hot Cue F">F</button>
+                    <button class="rb-cue-btn cue-g" data-deck="2" data-cue="6" title="Hot Cue G">G</button>
+                    <button class="rb-cue-btn cue-h" data-deck="2" data-cue="7" title="Hot Cue H (Exit)">H</button>
+                    <span class="rb-pad-lbl" style="margin-left:3px;">LP:</span>
+                    <button class="rb-loop-scale-btn" data-deck="2" data-scale="0.5" title="Halve Active Loop Length (1/2x)">½×</button>
+                    <button class="rb-loop-scale-btn" data-deck="2" data-scale="2" title="Double Active Loop Length (2x)">2×</button>
+                    <button class="rb-loop-btn" data-deck="2" data-loop="4" title="4-Beat Bar Loop">4B</button>
+                    <button class="rb-loop-btn" data-deck="2" data-loop="0" title="Exit Active Loop">EXIT</button>
+                    <button class="rb-jump-btn" data-deck="2" data-jump="-4" title="Beat Jump Back 1 Bar (-4 Beats)">◄4</button>
+                    <button class="rb-jump-btn" data-deck="2" data-jump="4" title="Beat Jump Forward 1 Bar (+4 Beats)">4►</button>
                 </div>
                 <div class="rb-eq-row">
-                    <label>LOW <input type="range" id="slider-d2-low" min="-1" max="1" step="0.05" value="0" /></label>
-                    <label>MID <input type="range" id="slider-d2-mid" min="-1" max="1" step="0.05" value="0" /></label>
-                    <label>HI <input type="range" id="slider-d2-hi" min="-1" max="1" step="0.05" value="0" /></label>
-                    <label>FLTR <input type="range" id="slider-d2-fltr" min="-1" max="1" step="0.05" value="0" /></label>
+                    <label title="Pre-Fader Input Gain Staging (-12dB to +9dB, Auto-Staged to -12 dBFS)"><span>TRIM</span><input type="range" id="slider-d2-trim" min="-12" max="9" step="0.2" value="0" /></label>
+                    <label><button class="rb-kill-btn" data-deck="2" data-kill="low" title="Isolator LOW Kill (-∞dB)">LOW</button><input type="range" id="slider-d2-low" min="-1" max="1" step="0.05" value="0" /></label>
+                    <label><button class="rb-kill-btn" data-deck="2" data-kill="mid" title="Isolator MID Kill (-∞dB)">MID</button><input type="range" id="slider-d2-mid" min="-1" max="1" step="0.05" value="0" /></label>
+                    <label><button class="rb-kill-btn" data-deck="2" data-kill="high" title="Isolator HI Kill (-∞dB)">HI</button><input type="range" id="slider-d2-hi" min="-1" max="1" step="0.05" value="0" /></label>
+                    <label><span>CFX</span><input type="range" id="slider-d2-fltr" min="-1" max="1" step="0.05" value="0" /></label>
+                    <label title="DJM-A9 Channel 2 Vertical Upfader (0% to 100%)"><span>CH2</span><input type="range" id="slider-d2-vol" min="0" max="1" step="0.02" value="1" /></label>
                 </div>
             </div>
         </div>
 
-        <!-- Rekordbox Folder Crate & Camelot Harmonic Rotation Queue -->
+        <!-- ====================================================================
+             HUMAN-IN-THE-LOOP (RLHF) AI DJ TRANSITION RATING & TRAINING STUDIO
+             ==================================================================== -->
+        <div id="rb-rlhf-trainer-panel" class="rb-rlhf-panel hidden">
+            <div class="rlhf-top-bar">
+                <div class="rlhf-title-group">
+                    <span class="rlhf-badge">🧠 RLHF HUMAN TRAINER</span>
+                    <span id="rlhf-stats-strip">0 RATED • AVG --★ • 0🏆 GOLD • 0⛔ VETO • 0🎯 CUE FIXES</span>
+                </div>
+                <div class="rlhf-controls-group">
+                    <label class="rlhf-inline-lbl" title="Active Learning Pair Selection Strategy">
+                        <span>QUEUE:</span>
+                        <select id="select-rlhf-queue-mode" class="rb-cfx-select">
+                            <option value="SMART">🎯 SMART ACTIVE LEARNING</option>
+                            <option value="EXPLOIT">🏆 TOP AI PICKS (EXPLOIT)</option>
+                            <option value="EXPLORE">🎲 UNRATED PAIRS (EXPLORE)</option>
+                            <option value="LOCK_D1">🔒 LOCK DECK 1 (TEST INCOMING)</option>
+                        </select>
+                    </label>
+                    <button type="button" class="rb-sm-btn active" id="btn-rlhf-next-pair" title="Pick &amp; Audition Next 15s Transition Sweet-Spot Snippet (N / Space)">⏭️ NEXT 15s SNIPPET [SPACE]</button>
+                    <button type="button" class="rb-sm-btn" id="btn-rlhf-replay" title="Replay Current Transition Snippet from Pre-Drop (R)">🔁 REPLAY [R]</button>
+                    <button type="button" class="rb-sm-btn" id="btn-rlhf-jump-swap" title="Jump Immediately to 2 Bars Before Bass-Swap &amp; Drop">⚡ JUMP TO DROP</button>
+                    <label class="rlhf-auto-chk" title="Automatically load and audition the next transition pair right after submitting a star rating">
+                        <input type="checkbox" id="chk-rlhf-auto-next" checked />
+                        <span>AUTO-NEXT</span>
+                    </label>
+                </div>
+            </div>
+
+            <div class="rlhf-grid">
+                <!-- COLUMN 1: Active Pair Diagnostics, Style/Length Policy & 1-Click Cue Fixers -->
+                <div class="rlhf-col">
+                    <div class="rlhf-col-head">
+                        <span>1. ACTIVE TRANSITION &amp; CUE ALIGNMENT</span>
+                        <span id="rlhf-pred-badge" class="rlhf-pred-pill">AI PRED: 3.8★</span>
+                    </div>
+                    <div id="rlhf-pair-info" class="rlhf-pair-card">
+                        Click <strong>NEXT 15s SNIPPET</strong> to audition a beat-matched transition at the pre-drop sweet spot.
+                    </div>
+
+                    <div class="rlhf-policy-row">
+                        <span class="rlhf-mini-lbl">STYLE:</span>
+                        <div class="rlhf-pill-strip" id="rlhf-style-strip">
+                            <button type="button" class="rlhf-mini-pill active" data-rlhf-style="BASS_SWAP" title="Classic Club EQ Bass-Swap">BASS SWAP</button>
+                            <button type="button" class="rlhf-mini-pill" data-rlhf-style="FILTER_SLAM" title="High-Pass Resonance Sweep into Slam Drop">FILTER SLAM</button>
+                            <button type="button" class="rlhf-mini-pill" data-rlhf-style="UKG_DUB_SPIN" title="UKG Dub-Echo Freeze + Vinyl Backspin">UKG SPIN</button>
+                            <button type="button" class="rlhf-mini-pill" data-rlhf-style="STEM_VOCAL" title="3-Stem Acapella Vocal Float over Incoming Drums">STEM VOCAL</button>
+                            <button type="button" class="rlhf-mini-pill" data-rlhf-style="LOOP_ROLL" title="Boiler Room Tightening Loop-Roll (4B→2B→1B)">LOOP ROLL</button>
+                            <button type="button" class="rlhf-mini-pill" data-rlhf-style="ECHO_FREEZE_CUT" title="Echo-Freeze Fake-Drop Hard Cut">ECHO CUT</button>
+                        </div>
+                    </div>
+
+                    <div class="rlhf-policy-row">
+                        <span class="rlhf-mini-lbl">BARS:</span>
+                        <div class="rlhf-pill-strip" id="rlhf-bars-strip">
+                            <button type="button" class="rlhf-mini-pill" data-rlhf-bars="4">4B (~9s)</button>
+                            <button type="button" class="rlhf-mini-pill active" data-rlhf-bars="8">8B (~18s)</button>
+                            <button type="button" class="rlhf-mini-pill" data-rlhf-bars="16">16B (~33s)</button>
+                            <button type="button" class="rlhf-mini-pill" data-rlhf-bars="32">32B (~65s)</button>
+                        </div>
+                    </div>
+
+                    <div class="rlhf-nudge-box">
+                        <div class="rlhf-nudge-row">
+                            <span class="rlhf-nudge-lbl" title="Permanently shift Outgoing Track's Mix-Out Cue H in 4-beat bar increments">D1 MIX-OUT CUE <strong id="rlhf-out-offset-lbl">(0B)</strong>:</span>
+                            <div class="rlhf-nudge-btns">
+                                <button type="button" class="rb-sm-btn" data-nudge-out="-8">-8B</button>
+                                <button type="button" class="rb-sm-btn" data-nudge-out="-4">-4B</button>
+                                <button type="button" class="rb-sm-btn" data-nudge-out="0">0B</button>
+                                <button type="button" class="rb-sm-btn" data-nudge-out="4">+4B</button>
+                                <button type="button" class="rb-sm-btn" data-nudge-out="8">+8B</button>
+                            </div>
+                        </div>
+                        <div class="rlhf-nudge-row">
+                            <span class="rlhf-nudge-lbl" title="Permanently shift Incoming Track's Main Drop Anchor in 4-beat bar increments">D2 MAIN DROP <strong id="rlhf-in-offset-lbl">(0B)</strong>:</span>
+                            <div class="rlhf-nudge-btns">
+                                <button type="button" class="rb-sm-btn" data-nudge-in="-8">-8B</button>
+                                <button type="button" class="rb-sm-btn" data-nudge-in="-4">-4B</button>
+                                <button type="button" class="rb-sm-btn" data-nudge-in="0">0B</button>
+                                <button type="button" class="rb-sm-btn" data-nudge-in="4">+4B</button>
+                                <button type="button" class="rb-sm-btn" data-nudge-in="8">+8B</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- COLUMN 2: Diagnostic Feedback Tags & 1-5 Star Rating Console -->
+                <div class="rlhf-col">
+                    <div class="rlhf-col-head">
+                        <span>2. TAG DIAGNOSTICS &amp; RATE MIX (KEYS 1–5)</span>
+                        <span style="color:#00f5d4;font-size:8.5px;">UPDATES WEIGHTS LIVE</span>
+                    </div>
+                    <div id="rlhf-tags-grid" class="rlhf-tags-grid"></div>
+                    <div class="rlhf-stars-row">
+                        <button type="button" class="rlhf-star-btn star-1" data-rlhf-rate="1" title="1★ Trainwreck — Veto this pair &amp; penalize active features (Key 1)">
+                            <strong>1★</strong><span>TRAINWRECK</span>
+                        </button>
+                        <button type="button" class="rlhf-star-btn star-2" data-rlhf-rate="2" title="2★ Clumsy — Veto this pair &amp; nudge weights down (Key 2)">
+                            <strong>2★</strong><span>ROUGH</span>
+                        </button>
+                        <button type="button" class="rlhf-star-btn star-3" data-rlhf-rate="3" title="3★ Solid — Passable club transition (Key 3)">
+                            <strong>3★</strong><span>SOLID</span>
+                        </button>
+                        <button type="button" class="rlhf-star-btn star-4" data-rlhf-rate="4" title="4★ Tight — Great harmonic &amp; phrase blend (Key 4)">
+                            <strong>4★</strong><span>TIGHT MIX</span>
+                        </button>
+                        <button type="button" class="rlhf-star-btn star-5" data-rlhf-rate="5" title="5★ Boiler Room Gold — Prioritize this pair &amp; reinforce features (Key 5)">
+                            <strong>5★</strong><span>BOILER GOLD</span>
+                        </button>
+                    </div>
+                    <div id="rlhf-feedback-toast" class="rlhf-feedback-toast">
+                        💡 <strong>HOW IT WORKS:</strong> Select any diagnostic tags that apply, then click <strong>1★–5★</strong> (or press keys <code>1</code>–<code>5</code>) to train DJ Kinetix's 18 feature weights and style policy.
+                    </div>
+                </div>
+
+                <!-- COLUMN 3: Learned Neural Feature Weights, Recent History & Export/Import -->
+                <div class="rlhf-col">
+                    <div class="rlhf-col-head">
+                        <span>3. LEARNED AI DJ WEIGHTS (θ) &amp; PROFILE</span>
+                        <div class="rlhf-io-btns">
+                            <button type="button" class="rb-sm-btn" id="btn-rlhf-export" title="Export Trained AI DJ Profile &amp; Cue Offsets to JSON">💾 EXPORT</button>
+                            <label class="rb-sm-btn" style="cursor:pointer;" title="Import Trained AI DJ Profile JSON">
+                                📂 IMPORT
+                                <input type="file" id="input-rlhf-import" accept=".json,application/json" hidden />
+                            </label>
+                            <button type="button" class="rb-sm-btn" id="btn-rlhf-reset" title="Reset Learned Weights &amp; History to Default Priors">↺ RESET</button>
+                        </div>
+                    </div>
+                    <div id="rlhf-weights-list" class="rlhf-weights-list"></div>
+                    <div id="rlhf-history-list" class="rlhf-history-list"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Rekordbox 7 Folder Crate & Camelot Harmonic Rotation Queue -->
         <div class="rb-crate-panel">
             <div class="rb-crate-header">
-                <span>🗂️ REKORDBOX FOLDER CRATE // CAMELOT WHEEL &amp; BPM AUTO-ROTATION (INTRO/OUTRO 3-PHRASE LOOPS ONLY)</span>
-                <span id="rb-crate-count">4 TRACKS IN CRATE</span>
+                <div class="rb-crate-header-left">
+                    <span>🗂️ REKORDBOX 7 CRATE // CAMELOT HARMONIC &amp; BPM ENGINE</span>
+                    <input type="text" id="input-rb-crate-search" class="rb-crate-search" placeholder="🔍 Search 121 tracks (artist, title, key, BPM)..." />
+                    <select id="select-rb-crate-sort" class="rb-cfx-select" title="Sort Crate Library">
+                        <option value="HARMONIC">SORT: CAMELOT MATCH</option>
+                        <option value="ENERGY">SORT: ENERGY ★</option>
+                        <option value="BPM">SORT: BPM</option>
+                        <option value="KEY">SORT: KEY</option>
+                        <option value="TITLE">SORT: TITLE</option>
+                    </select>
+                    <button class="rb-sm-btn" id="btn-rb-crate-harm-filter" title="Filter to only Harmonically Compatible tracks (±1 Camelot / Relative / Parallel)">🎯 HARMONIC ONLY</button>
+                </div>
+                <span id="rb-crate-count">121 TRACKS IN CRATE</span>
             </div>
             <div id="rb-crate-list" class="rb-crate-list"></div>
         </div>
@@ -489,7 +1580,10 @@
 
     <!-- Modular Scripts -->
     <script src="js/vibe-palettes.js"></script>
+    <script src="js/vehicle-roster.js"></script>
+    <script src="js/rekordbox-library-data.js"></script>
     <script src="js/rekordbox-dj.js"></script>
+    <script src="js/dj-transition-trainer.js"></script>
     <script src="js/audio-engine.js"></script>
     <script src="js/dj-jumbotron.js"></script>
     <script src="js/track-spline.js"></script>

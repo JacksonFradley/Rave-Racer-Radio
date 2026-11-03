@@ -1,0 +1,40 @@
+# Large Local Audio Archives & Library (2+ GB)
+Music/
+Music.zip
+
+# Python & Generator Cache
+__pycache__/
+*.py[cod]
+*$py.class
+.venv/
+venv/
+
+# Unity 6 Generated Directories & Project Files
+[Ll]ibrary/
+[Tt]emp/
+[Oo]bj/
+[Bb]uild/
+[Bb]uilds/
+[Ll]ogs/
+[Uu]ser[Ss]ettings/
+[Mm]emoryCaptures/
+*.csproj
+*.sln
+*.suo
+*.tmp
+*.user
+*.userprefs
+*.pidb
+*.booproj
+*.svd
+*.pdb
+*.mdb
+*.opendb
+*.VC.db
+
+# OS & Editor Metadata
+.DS_Store
+Thumbs.db
+Desktop.ini
+.vscode/
+.idea/

@@ -909,13 +909,360 @@ html, body {
    DEVELOPER STARTING MENU & MECHANIC TROUBLESHOOTING SUITE STYLES
    ============================================================================ */
 .dev-menu-window {
-    width: min(1080px, 96vw);
-    max-height: 92vh;
+    width: min(1140px, 96vw);
+    max-height: 94vh;
     overflow-y: auto;
     background: #0b071c;
     border: 4px solid var(--cyan);
     box-shadow: 12px 12px 0px #000000;
-    padding: 20px 24px;
+    padding: 18px 22px;
+}
+
+.dev-menu-tabs {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    align-items: center;
+}
+
+/* ============================================================================
+   GARAGE & MODULAR VEHICLE CUSTOMIZER (MAIN MENU TAB 1)
+   ============================================================================ */
+.garage-customizer-grid {
+    display: grid;
+    grid-template-columns: 1.05fr 1fr;
+    gap: 18px;
+    align-items: start;
+}
+
+@media (max-width: 920px) {
+    .garage-customizer-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+.garage-preview-col, .garage-controls-col {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.garage-viewport-frame {
+    position: relative;
+    background: #060312;
+    border: 3px solid var(--cyan);
+    box-shadow: 6px 6px 0px #000;
+    overflow: hidden;
+    aspect-ratio: 16 / 9;
+    cursor: grab;
+}
+
+.garage-viewport-frame:active {
+    cursor: grabbing;
+}
+
+#garage-turntable-canvas {
+    width: 100%;
+    height: 100%;
+    display: block;
+}
+
+.garage-viewport-hud-top {
+    position: absolute;
+    top: 8px;
+    left: 10px;
+    right: 10px;
+    display: flex;
+    justify-content: space-between;
+    pointer-events: none;
+}
+
+.garage-badge-code {
+    background: var(--magenta);
+    color: #fff;
+    font-size: 10px;
+    font-weight: 800;
+    padding: 2px 8px;
+    border: 2px solid #000;
+    box-shadow: 3px 3px 0px #000;
+}
+
+.garage-badge-tris {
+    background: rgba(6, 3, 18, 0.88);
+    color: var(--volt);
+    font-size: 10px;
+    font-weight: 700;
+    padding: 2px 8px;
+    border: 1px solid var(--volt);
+}
+
+.garage-viewport-hud-bottom {
+    position: absolute;
+    bottom: 8px;
+    left: 10px;
+    right: 10px;
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+    pointer-events: none;
+    background: linear-gradient(180deg, transparent, rgba(5, 3, 15, 0.92));
+    padding: 8px 6px 2px;
+}
+
+.garage-car-title {
+    font-family: 'Fugaz One', sans-serif;
+    font-size: 20px;
+    color: var(--gold);
+    text-shadow: 2px 2px 0px #000;
+    line-height: 1.05;
+}
+
+.garage-car-subtitle {
+    font-size: 10px;
+    font-weight: 700;
+    color: var(--cyan);
+    letter-spacing: 0.6px;
+}
+
+.garage-orbit-hint {
+    font-size: 9px;
+    font-weight: 700;
+    color: #d6d0f5;
+    background: rgba(8, 5, 22, 0.85);
+    padding: 2px 7px;
+    border: 1px solid rgba(255, 255, 255, 0.25);
+}
+
+.garage-stats-box {
+    background: #130d2e;
+    border: 2px solid rgba(255, 255, 255, 0.22);
+    padding: 8px 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+}
+
+.garage-stat-row {
+    display: grid;
+    grid-template-columns: 112px 1fr 28px;
+    align-items: center;
+    gap: 8px;
+    font-size: 10px;
+    font-weight: 700;
+    color: #cfc9ec;
+}
+
+.garage-stat-track {
+    height: 8px;
+    background: #060410;
+    border: 1px solid #000;
+    overflow: hidden;
+}
+
+.garage-stat-fill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--cyan), var(--magenta), var(--gold));
+    transition: width 0.18s ease;
+}
+
+.garage-launch-bar {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 7px;
+}
+
+.garage-control-group {
+    background: #140e30;
+    border: 2px solid rgba(255, 255, 255, 0.2);
+    padding: 8px 11px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.garage-group-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 11px;
+    font-weight: 800;
+    color: var(--gold);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.14);
+    padding-bottom: 4px;
+}
+
+.garage-preset-row {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 6px;
+}
+
+.garage-preset-grid-4 {
+    grid-template-columns: repeat(4, 1fr);
+}
+
+.garage-fluid-telemetry-box {
+    background: #120c2c;
+    border: 2px solid var(--magenta);
+    box-shadow: 4px 4px 0px #000;
+    padding: 6px 10px;
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+}
+
+.garage-fluid-telemetry-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 9px;
+    font-weight: 800;
+    color: var(--cyan);
+}
+
+.garage-fluid-telemetry-head strong {
+    color: var(--gold);
+}
+
+.garage-fluid-swatch-strip {
+    display: grid;
+    grid-template-columns: repeat(9, 1fr);
+    gap: 4px;
+}
+
+.fluid-swatch-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 2px;
+}
+
+.fluid-swatch-box {
+    width: 100%;
+    height: 15px;
+    border: 1px solid #ffffff;
+    box-shadow: 2px 2px 0px #000;
+    background: #4d12b8;
+    transition: background-color 0.06s linear;
+}
+
+.fluid-swatch-item small {
+    font-size: 7.5px;
+    font-weight: 700;
+    color: #cfc9ec;
+    white-space: nowrap;
+}
+
+.garage-color-picker-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 5px 8px;
+}
+
+.garage-color-field {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    background: #090518;
+    border: 1px solid rgba(0, 245, 212, 0.45);
+    padding: 3px 6px;
+    cursor: pointer;
+    transition: border-color 0.12s, background 0.12s;
+}
+
+.garage-color-field:hover {
+    border-color: var(--gold);
+    background: #160e36;
+}
+
+.garage-color-field input[type="color"] {
+    width: 24px;
+    height: 22px;
+    border: 1px solid #fff;
+    padding: 0;
+    background: none;
+    cursor: pointer;
+    flex-shrink: 0;
+}
+
+.garage-color-field div {
+    display: flex;
+    flex-direction: column;
+    line-height: 1.15;
+    overflow: hidden;
+}
+
+.garage-color-field span {
+    font-size: 8px;
+    font-weight: 700;
+    color: #b8b0dc;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+    overflow: hidden;
+}
+
+.garage-color-field strong {
+    font-size: 9.5px;
+    font-weight: 800;
+    color: #ffffff;
+}
+
+.garage-chip {
+    background: #0b071d;
+    color: #dcd6f7;
+    border: 2px solid rgba(255, 255, 255, 0.25);
+    padding: 5px 6px;
+    font-family: inherit;
+    font-size: 9.5px;
+    font-weight: 700;
+    cursor: pointer;
+    text-align: center;
+    transition: all 0.12s;
+}
+
+.garage-chip:hover, .garage-chip.active {
+    background: var(--cyan);
+    color: #000;
+    border-color: #fff;
+    box-shadow: 3px 3px 0px #000;
+}
+
+.garage-select-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 6px 10px;
+}
+
+.garage-field {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    font-size: 9px;
+    font-weight: 700;
+    color: #b8b0dc;
+}
+
+.garage-field select {
+    background: #090518;
+    color: #ffffff;
+    border: 1px solid var(--cyan);
+    padding: 4px 6px;
+    font-family: inherit;
+    font-size: 10px;
+    font-weight: 700;
+    cursor: pointer;
+}
+
+.garage-sliders-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 6px 12px;
+}
+
+.garage-vibe-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 5px;
 }
 
 .dev-menu-header {
@@ -1161,38 +1508,41 @@ html, body {
 #rekordbox-studio-panel {
     position: fixed;
     left: 50%;
-    bottom: 96px;
+    bottom: 18px;
     transform: translateX(-50%);
-    width: min(864px, 96vw);
-    background: rgba(9, 6, 22, 0.95);
+    width: min(980px, 97vw);
+    max-height: 93vh;
+    overflow-y: auto;
+    background: rgba(9, 6, 22, 0.96);
     border: 3px solid var(--gold);
     box-shadow: 10px 10px 0px #000000, 0 0 28px rgba(0, 245, 212, 0.25);
-    padding: 10px 12px;
+    padding: 8px 10px;
     z-index: 30;
     display: flex;
     flex-direction: column;
-    gap: 8px;
+    gap: 6px;
 }
 
 .rb-header {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    gap: 10px;
+    gap: 8px;
     border-bottom: 2px solid rgba(255, 255, 255, 0.16);
-    padding-bottom: 6px;
+    padding-bottom: 5px;
     flex-wrap: wrap;
 }
 
 .rb-header-left {
     display: flex;
     align-items: center;
-    gap: 12px;
+    gap: 10px;
+    flex-wrap: wrap;
 }
 
 .rb-brand {
     font-family: 'Fugaz One', sans-serif;
-    font-size: 14px;
+    font-size: 13px;
     color: var(--gold);
     letter-spacing: 0.8px;
 }
@@ -1208,7 +1558,33 @@ html, body {
 
 .rb-header-right {
     display: flex;
-    gap: 5px;
+    gap: 4px;
+    flex-wrap: wrap;
+    align-items: center;
+}
+
+.rb-header-select, .rb-cfx-select {
+    background: #140d30;
+    color: var(--gold);
+    border: 1px solid rgba(255, 230, 0, 0.45);
+    font-family: inherit;
+    font-size: 9px;
+    font-weight: 700;
+    padding: 2px 5px;
+    cursor: pointer;
+}
+
+.rb-coach-banner {
+    background: linear-gradient(90deg, rgba(0, 245, 212, 0.14), rgba(255, 230, 0, 0.14), rgba(255, 30, 107, 0.14));
+    border: 1px solid rgba(255, 230, 0, 0.45);
+    color: #ffe600;
+    font-size: 9.5px;
+    font-weight: 700;
+    padding: 3px 8px;
+    letter-spacing: 0.3px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 
 #rekordbox-canvas {
@@ -1222,18 +1598,18 @@ html, body {
 
 .rb-controls-grid {
     display: grid;
-    grid-template-columns: 1fr 165px 1fr;
-    gap: 8px;
+    grid-template-columns: 1fr 162px 1fr;
+    gap: 6px;
     align-items: stretch;
 }
 
 .rb-deck-box {
     background: #100b26;
     border: 1px solid rgba(255, 255, 255, 0.22);
-    padding: 6px 8px;
+    padding: 5px 7px;
     display: flex;
     flex-direction: column;
-    gap: 5px;
+    gap: 4px;
 }
 
 .rb-deck-1 {
@@ -1244,12 +1620,12 @@ html, body {
     border-right: 3px solid var(--magenta);
 }
 
-.rb-deck-top-row, .rb-pad-row, .rb-eq-row {
+.rb-deck-top-row, .rb-stem-row, .rb-pad-row, .rb-eq-row {
     display: flex;
     align-items: center;
-    gap: 5px;
+    gap: 4px;
     flex-wrap: wrap;
-    font-size: 10px;
+    font-size: 9px;
 }
 
 .rb-file-btn {
@@ -1257,7 +1633,7 @@ html, body {
     color: #000;
     font-weight: 700;
     font-size: 9px;
-    padding: 3px 7px;
+    padding: 2px 6px;
     border: 1px solid #000;
     cursor: pointer;
 }
@@ -1274,7 +1650,7 @@ html, body {
     font-family: inherit;
     font-size: 9px;
     font-weight: 700;
-    padding: 3px 6px;
+    padding: 2px 5px;
     cursor: pointer;
 }
 
@@ -1283,20 +1659,49 @@ html, body {
     color: #000;
 }
 
+.rb-stem-btn {
+    background: #140e2e;
+    color: #777199;
+    border: 1px solid rgba(255, 255, 255, 0.25);
+    font-family: inherit;
+    font-size: 8.5px;
+    font-weight: 800;
+    padding: 2px 5px;
+    cursor: pointer;
+}
+
+.rb-stem-btn.stem-drums.active {
+    background: #1d4ed8;
+    color: #ffffff;
+    border-color: #60a5fa;
+}
+
+.rb-stem-btn.stem-vocal.active {
+    background: #7e22ce;
+    color: #ffffff;
+    border-color: #c084fc;
+}
+
+.rb-stem-btn.stem-inst.active {
+    background: #15803d;
+    color: #ffffff;
+    border-color: #4ade80;
+}
+
 .rb-pad-lbl {
-    font-size: 9px;
+    font-size: 8.5px;
     font-weight: 700;
     color: #b8b2d8;
 }
 
-.rb-cue-btn, .rb-loop-btn {
+.rb-cue-btn, .rb-loop-btn, .rb-loop-scale-btn, .rb-jump-btn {
     background: #191236;
     color: #fff;
     border: 1px solid rgba(255, 255, 255, 0.3);
     font-family: inherit;
-    font-size: 9px;
+    font-size: 8.5px;
     font-weight: 700;
-    padding: 2px 5px;
+    padding: 2px 4px;
     cursor: pointer;
 }
 
@@ -1304,10 +1709,31 @@ html, body {
 .rb-cue-btn.cue-b { border-color: #ffe600; color: #ffe600; }
 .rb-cue-btn.cue-c { border-color: #ff1e6b; color: #ff1e6b; }
 .rb-cue-btn.cue-d { border-color: #bfff00; color: #bfff00; }
+.rb-cue-btn.cue-e { border-color: #38bdf8; color: #38bdf8; }
+.rb-cue-btn.cue-f { border-color: #fb923c; color: #fb923c; }
+.rb-cue-btn.cue-g { border-color: #c084fc; color: #c084fc; }
+.rb-cue-btn.cue-h { border-color: #f43f5e; color: #f43f5e; }
 
-.rb-cue-btn:hover, .rb-loop-btn:hover {
+.rb-cue-btn:hover, .rb-loop-btn:hover, .rb-loop-scale-btn:hover, .rb-jump-btn:hover {
     background: #ffffff;
     color: #000000;
+}
+
+.rb-kill-btn {
+    background: #191236;
+    color: #cfc9ec;
+    border: 1px solid rgba(255, 255, 255, 0.25);
+    font-family: inherit;
+    font-size: 8px;
+    font-weight: 800;
+    padding: 1px 4px;
+    cursor: pointer;
+}
+
+.rb-kill-btn.killed {
+    background: #ff1e56;
+    color: #ffffff;
+    border-color: #ffffff;
 }
 
 .rb-eq-row label {
@@ -1315,7 +1741,7 @@ html, body {
     display: flex;
     align-items: center;
     gap: 3px;
-    font-size: 9px;
+    font-size: 8.5px;
     font-weight: 700;
     color: #cfc9ec;
 }
@@ -1329,12 +1755,19 @@ html, body {
 .rb-mixer-center {
     background: #0c081e;
     border: 1px solid rgba(255, 230, 0, 0.35);
-    padding: 6px 8px;
+    padding: 5px 7px;
     display: flex;
     flex-direction: column;
     justify-content: center;
     align-items: center;
     gap: 4px;
+}
+
+.rb-mixer-btns {
+    display: flex;
+    gap: 3px;
+    flex-wrap: wrap;
+    justify-content: center;
 }
 
 .rb-xfade-lbl {
@@ -1358,16 +1791,15 @@ html, body {
 }
 
 .rb-drop-hint {
-    font-size: 8px;
+    font-size: 7.5px;
     color: #9e96c4;
     text-align: center;
 }
 
-
 .rb-folder-btn {
     background: var(--gold);
     color: #000000;
-    padding: 4px 9px;
+    padding: 3px 8px;
     font-size: 9px;
     font-weight: 800;
     border: 1px solid #000;
@@ -1392,15 +1824,35 @@ html, body {
 .rb-crate-header {
     display: flex;
     justify-content: space-between;
+    align-items: center;
+    gap: 8px;
     font-size: 9px;
     font-weight: 700;
     color: var(--gold);
     border-bottom: 1px solid rgba(255, 255, 255, 0.14);
-    padding-bottom: 3px;
+    padding-bottom: 4px;
+    flex-wrap: wrap;
+}
+
+.rb-crate-header-left {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    flex-wrap: wrap;
+}
+
+.rb-crate-search {
+    background: #120c2c;
+    color: #ffffff;
+    border: 1px solid rgba(0, 245, 212, 0.4);
+    font-family: inherit;
+    font-size: 9px;
+    padding: 2px 6px;
+    width: 210px;
 }
 
 .rb-crate-list {
-    max-height: 82px;
+    max-height: 92px;
     overflow-y: auto;
     display: flex;
     flex-direction: column;
@@ -1409,13 +1861,20 @@ html, body {
 
 .rb-crate-row {
     display: grid;
-    grid-template-columns: 24px 1fr 68px 82px 110px 66px;
+    grid-template-columns: 28px 1fr 68px 82px 74px 124px 66px;
     align-items: center;
     gap: 6px;
     font-size: 9px;
     padding: 2px 6px;
     background: #120c2c;
     border-left: 2px solid transparent;
+}
+
+.rb-energy-badge {
+    font-size: 8px;
+    font-weight: 800;
+    color: var(--gold);
+    text-align: center;
 }
 
 .rb-crate-row.active-d1 {
@@ -1457,3 +1916,1754 @@ html, body {
     gap: 3px;
     justify-content: flex-end;
 }
+
+/* ============================================================================
+   OFFICIAL GRAND PRIX RACE MODE: MENU TAB, 3-2-1 COUNTDOWN & POST-RACE STATS
+   ============================================================================ */
+.garage-race-hero-btn {
+    grid-column: 1 / -1;
+    font-size: 12.5px;
+    padding: 9px 14px;
+    background: linear-gradient(90deg, rgba(255, 230, 0, 0.22), rgba(0, 245, 212, 0.22));
+    border-color: var(--gold);
+    color: var(--gold);
+    letter-spacing: 0.5px;
+}
+
+.garage-race-hero-btn:hover {
+    background: var(--gold);
+    color: #000000;
+}
+
+.dev-card-featured {
+    border-color: var(--gold);
+    background: linear-gradient(135deg, #211548 0%, #120b29 100%);
+    box-shadow: 5px 5px 0px #000, 0 0 16px rgba(255, 230, 0, 0.18);
+}
+
+.race-setup-track-grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 7px;
+}
+
+.race-track-option {
+    background: #0c071e;
+    border: 2px solid rgba(255, 255, 255, 0.22);
+    color: #ffffff;
+    padding: 8px 11px;
+    text-align: left;
+    font-family: inherit;
+    cursor: pointer;
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+    transition: all 0.12s ease;
+}
+
+.race-track-option:hover {
+    border-color: var(--cyan);
+    background: #171038;
+}
+
+.race-track-option.active {
+    border-color: var(--gold);
+    background: #21164a;
+    box-shadow: 4px 4px 0px #000000;
+}
+
+.rto-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 12px;
+    color: var(--cyan);
+}
+
+.race-track-option.active .rto-top {
+    color: var(--gold);
+}
+
+.race-track-option > span {
+    font-size: 10px;
+    color: #c6bfe6;
+}
+
+.race-setup-row {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.race-setup-col {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.race-setup-lbl {
+    font-size: 9.5px;
+    font-weight: 700;
+    color: #b8b0dc;
+}
+
+.race-big-launch-btn {
+    width: 100%;
+    padding: 12px 16px;
+    font-size: 14px;
+    letter-spacing: 0.8px;
+    margin-top: 4px;
+    background: var(--gold);
+    color: #000000;
+    border: 3px solid #ffffff;
+    box-shadow: 6px 6px 0px #000000;
+}
+
+.race-big-launch-btn:hover {
+    background: var(--volt);
+    color: #000000;
+}
+
+.starting-grid-preview {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 6px;
+}
+
+.grid-slot-card {
+    background: #0b061b;
+    border: 1px solid rgba(255, 255, 255, 0.22);
+    padding: 6px 8px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.grid-slot-card div {
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+
+.grid-slot-card strong {
+    font-size: 10px;
+    color: #ffffff;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.grid-slot-card small {
+    font-size: 8.5px;
+    color: #a89fd4;
+}
+
+.grid-slot-player {
+    border-color: var(--cyan);
+    background: rgba(0, 245, 212, 0.10);
+}
+
+.grid-pos-badge {
+    background: var(--magenta);
+    color: #ffffff;
+    font-size: 9px;
+    font-weight: 800;
+    padding: 2px 6px;
+    border: 1px solid #000;
+    white-space: nowrap;
+}
+
+.grid-pos-badge.badge-player {
+    background: var(--cyan);
+    color: #000000;
+}
+
+.race-records-table {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    font-size: 10px;
+}
+
+.race-record-row {
+    display: grid;
+    grid-template-columns: 1.3fr 1fr 1fr 54px;
+    align-items: center;
+    gap: 6px;
+    background: #0b061b;
+    padding: 4px 8px;
+    border-left: 3px solid var(--cyan);
+}
+
+/* HUD Live Race Timers & Split Banner */
+.hud-race-timers {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    background: rgba(5, 3, 14, 0.78);
+    border: 1px solid rgba(0, 245, 212, 0.28);
+    padding: 4px 8px;
+    margin-bottom: 5px;
+}
+
+.rt-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 10px;
+    color: #b8b2d8;
+    font-weight: 700;
+}
+
+.rt-row strong {
+    font-family: 'Chakra Petch', monospace;
+    font-size: 12px;
+    color: #ffffff;
+    letter-spacing: 0.5px;
+}
+
+.race-split-banner {
+    background: linear-gradient(90deg, rgba(11, 8, 26, 0.95), rgba(35, 16, 68, 0.95));
+    border: 2px solid var(--gold);
+    box-shadow: 5px 5px 0px #000000;
+    color: var(--gold);
+    font-family: 'Fugaz One', 'Chakra Petch', sans-serif;
+    font-size: 14px;
+    padding: 5px 18px;
+    transform: skewX(-10deg);
+    letter-spacing: 1px;
+    text-align: center;
+    animation: ribbonSnapIn 0.18s cubic-bezier(0.18, 0.89, 0.32, 1.28);
+}
+
+/* Pre-Race 3-2-1-GO Countdown Overlay */
+.race-countdown-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 35;
+    pointer-events: none;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.cd-card {
+    background: rgba(8, 5, 22, 0.88);
+    border: 4px solid var(--cyan);
+    box-shadow: 12px 12px 0px #000000, 0 0 40px rgba(0, 245, 212, 0.35);
+    padding: 18px 34px;
+    text-align: center;
+    transform: skewX(-6deg);
+    min-width: 440px;
+}
+
+.cd-eyebrow {
+    font-size: 11px;
+    font-weight: 800;
+    color: var(--magenta);
+    letter-spacing: 2px;
+    margin-bottom: 2px;
+}
+
+.cd-track-title {
+    font-family: 'Fugaz One', sans-serif;
+    font-size: 18px;
+    color: #ffffff;
+    letter-spacing: 1px;
+    margin-bottom: 12px;
+}
+
+.cd-lights-gantry {
+    display: flex;
+    justify-content: center;
+    gap: 16px;
+    background: #04020a;
+    border: 2px solid rgba(255, 255, 255, 0.25);
+    padding: 10px 22px;
+    margin: 0 auto 10px;
+    width: fit-content;
+}
+
+.cd-lamp {
+    width: 34px;
+    height: 34px;
+    border-radius: 50%;
+    background: #1a1433;
+    border: 3px solid #000000;
+    box-shadow: inset 0 0 6px #000000;
+    transition: background 0.08s, box-shadow 0.08s, transform 0.08s;
+}
+
+.cd-lamp.lit-red {
+    background: var(--crimson);
+    box-shadow: 0 0 20px var(--crimson), inset 0 0 8px #ffffff;
+    transform: scale(1.08);
+}
+
+.cd-lamp.lit-gold {
+    background: var(--gold);
+    box-shadow: 0 0 20px var(--gold), inset 0 0 8px #ffffff;
+    transform: scale(1.08);
+}
+
+.cd-lamp.lit-cyan {
+    background: var(--cyan);
+    box-shadow: 0 0 20px var(--cyan), inset 0 0 8px #ffffff;
+    transform: scale(1.08);
+}
+
+.cd-lamp.lit-go {
+    background: var(--volt);
+    box-shadow: 0 0 26px var(--volt), inset 0 0 10px #ffffff;
+    transform: scale(1.14);
+}
+
+.cd-number-stage {
+    min-height: 92px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.cd-main-text {
+    font-family: 'Fugaz One', sans-serif;
+    font-size: 72px;
+    line-height: 1;
+    color: var(--gold);
+    text-shadow: 6px 6px 0px #000000, 0 0 24px rgba(255, 230, 0, 0.65);
+    letter-spacing: 2px;
+    transition: transform 0.08s ease;
+}
+
+.cd-main-text.cd-go {
+    color: var(--volt);
+    text-shadow: 6px 6px 0px #000000, 0 0 32px rgba(191, 255, 0, 0.9);
+    transform: scale(1.12);
+}
+
+.cd-rev-box {
+    margin-top: 10px;
+    background: #060312;
+    border: 2px solid rgba(255, 255, 255, 0.25);
+    padding: 8px 12px;
+    text-align: left;
+}
+
+.cd-rev-header {
+    display: flex;
+    justify-content: space-between;
+    font-size: 10px;
+    font-weight: 800;
+    color: #dcd6f7;
+    margin-bottom: 5px;
+}
+
+.cd-rev-header strong {
+    color: var(--cyan);
+}
+
+.cd-rev-track {
+    position: relative;
+    height: 14px;
+    background: #0c0820;
+    border: 2px solid #000000;
+    overflow: hidden;
+}
+
+.cd-rev-sweetspot {
+    position: absolute;
+    left: 64%;
+    width: 22%;
+    top: 0;
+    bottom: 0;
+    background: rgba(255, 230, 0, 0.32);
+    border-left: 2px solid var(--gold);
+    border-right: 2px solid var(--gold);
+    z-index: 2;
+}
+
+.cd-rev-fill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--cyan), var(--gold), var(--crimson));
+    transition: width 0.04s linear;
+}
+
+/* Post-Race Standings, Lap Splits & Telemetry Stats Modal */
+.race-results-window {
+    width: min(980px, 96vw);
+    max-height: 92vh;
+    overflow-y: auto;
+    background: #0b071c;
+    border: 4px solid var(--gold);
+    box-shadow: 14px 14px 0px #000000, 0 0 42px rgba(255, 230, 0, 0.25);
+    padding: 20px 24px;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+.rr-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 2px solid rgba(255, 255, 255, 0.18);
+    padding-bottom: 12px;
+    gap: 16px;
+}
+
+.rr-eyebrow {
+    font-size: 11px;
+    font-weight: 800;
+    color: var(--cyan);
+    letter-spacing: 1.5px;
+}
+
+#rr-placement-title {
+    font-family: 'Fugaz One', sans-serif;
+    font-size: 30px;
+    color: var(--gold);
+    text-shadow: 4px 4px 0px #000000;
+    letter-spacing: 1px;
+    margin: 2px 0;
+}
+
+.rr-car-used {
+    font-size: 11px;
+    font-weight: 700;
+    color: #cfc9ec;
+}
+
+.rr-grade-box {
+    background: #160e36;
+    border: 3px solid var(--cyan);
+    box-shadow: 6px 6px 0px #000000;
+    padding: 8px 18px;
+    text-align: center;
+    transform: skewX(-8deg);
+    min-width: 135px;
+}
+
+.rr-grade-lbl {
+    font-size: 9px;
+    font-weight: 800;
+    color: var(--cyan);
+    letter-spacing: 1px;
+}
+
+.rr-grade-letter {
+    font-family: 'Fugaz One', sans-serif;
+    font-size: 38px;
+    line-height: 1.05;
+    color: var(--gold);
+    text-shadow: 3px 3px 0px var(--magenta);
+}
+
+.rr-grade-pts {
+    font-size: 11px;
+    font-weight: 800;
+    color: #ffffff;
+}
+
+.rr-body-grid {
+    display: grid;
+    grid-template-columns: 1fr 1.1fr;
+    gap: 16px;
+}
+
+@media (max-width: 860px) {
+    .rr-body-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+.rr-col {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.rr-section-box {
+    background: #130d2e;
+    border: 2px solid rgba(255, 255, 255, 0.22);
+    padding: 10px 14px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.rr-section-title {
+    font-size: 12px;
+    font-weight: 800;
+    color: var(--gold);
+    letter-spacing: 1px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.14);
+    padding-bottom: 4px;
+}
+
+.rr-standings-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 11px;
+}
+
+.rr-standings-table th {
+    text-align: left;
+    font-size: 9.5px;
+    color: #a89fd4;
+    padding: 4px 6px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.15);
+}
+
+.rr-standings-table td {
+    padding: 6px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+    font-weight: 700;
+}
+
+.rr-row-player {
+    background: rgba(0, 245, 212, 0.15);
+    color: var(--cyan);
+}
+
+.rr-pos-pill {
+    display: inline-block;
+    padding: 1px 6px;
+    background: #23184c;
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    font-weight: 800;
+    font-size: 10px;
+}
+
+.rr-pos-1 {
+    background: var(--gold);
+    color: #000000;
+    border-color: #000000;
+}
+
+.rr-laps-list {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+}
+
+.rr-lap-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: #0b071d;
+    padding: 5px 10px;
+    border-left: 3px solid var(--cyan);
+    font-size: 11px;
+    font-weight: 700;
+}
+
+.rr-lap-row.best-lap {
+    border-left-color: var(--gold);
+    background: rgba(255, 230, 0, 0.12);
+}
+
+.rr-best-tag {
+    background: var(--gold);
+    color: #000000;
+    font-size: 9px;
+    font-weight: 800;
+    padding: 1px 6px;
+    margin-left: 6px;
+}
+
+.rr-stats-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 7px;
+}
+
+.rr-stat-card {
+    background: #0b071d;
+    border: 1px solid rgba(255, 255, 255, 0.18);
+    padding: 6px 9px;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.rr-stat-card span {
+    font-size: 8.5px;
+    font-weight: 700;
+    color: #a89fd4;
+    letter-spacing: 0.4px;
+}
+
+.rr-stat-card strong {
+    font-size: 13px;
+    color: #ffffff;
+}
+
+.text-cyan { color: var(--cyan) !important; }
+.text-gold { color: var(--gold) !important; }
+
+.rr-footer-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    justify-content: flex-end;
+    border-top: 2px solid rgba(255, 255, 255, 0.15);
+    padding-top: 12px;
+}
+
+.rr-action-btn {
+    padding: 9px 16px;
+    font-size: 12px;
+}
+
+/* ============================================================================
+   BUILD 0.4: ARCADE ATTRACT MODE TITLE SCREEN, CLEAN ARCADE HUD vs STUDIO HUD,
+   R4 TACHOMETER + GEAR + 3-TIER DRIFT GAUGE, MINIMAP, MIRROR & PAUSE MODAL
+   ============================================================================ */
+
+/* 1. Studio-Only Elements Hidden in Clean Arcade HUD Mode */
+body.arcade-hud-clean .studio-only-el {
+    display: none !important;
+}
+
+/* 2. Arcade Attract Mode & Title Screen Overlay */
+.arcade-title-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 45;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    align-items: center;
+    padding: 22px 32px;
+    background: radial-gradient(circle at 50% 50%, rgba(10, 6, 26, 0.25) 0%, rgba(5, 3, 14, 0.78) 100%);
+    pointer-events: auto;
+}
+
+.attract-top-bar {
+    width: 100%;
+    max-width: 1180px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+
+.attract-credit-pill, .attract-demo-pill, .attract-pad-pill {
+    background: rgba(8, 5, 22, 0.88);
+    border: 2px solid var(--cyan);
+    box-shadow: 4px 4px 0px #000;
+    padding: 4px 12px;
+    font-size: 11px;
+    font-weight: 800;
+    letter-spacing: 1px;
+    transform: skewX(-8deg);
+}
+
+.attract-credit-pill {
+    border-color: var(--gold);
+    color: var(--gold);
+}
+
+.attract-pad-pill {
+    border-color: var(--volt);
+    color: var(--volt);
+}
+
+.attract-hero-card {
+    background: rgba(9, 5, 24, 0.86);
+    border: 4px solid var(--cyan);
+    box-shadow: 14px 14px 0px #000000, 0 0 48px rgba(0, 245, 212, 0.28);
+    padding: 26px 38px;
+    text-align: center;
+    transform: skewX(-6deg);
+    max-width: 880px;
+    width: 95vw;
+    backdrop-filter: blur(6px);
+}
+
+.attract-eyebrow {
+    font-size: 11px;
+    font-weight: 800;
+    color: var(--magenta);
+    letter-spacing: 2.2px;
+    margin-bottom: 4px;
+}
+
+.attract-logo {
+    font-family: 'Fugaz One', sans-serif;
+    font-size: clamp(38px, 6vw, 68px);
+    line-height: 0.98;
+    color: #ffffff;
+    text-shadow: 6px 6px 0px #000000, -2px -2px 0px var(--magenta), 0 0 32px rgba(0, 245, 212, 0.55);
+    letter-spacing: 2px;
+}
+
+.attract-logo span {
+    color: var(--gold);
+    text-shadow: 6px 6px 0px #000000, 0 0 28px rgba(255, 230, 0, 0.75);
+}
+
+.attract-tagline {
+    font-size: 12px;
+    font-weight: 800;
+    color: var(--cyan);
+    letter-spacing: 3px;
+    margin: 8px 0 18px;
+}
+
+.attract-start-btn {
+    background: linear-gradient(90deg, var(--gold), var(--volt));
+    color: #000000;
+    border: 3px solid #ffffff;
+    box-shadow: 8px 8px 0px #000000, 0 0 28px rgba(255, 230, 0, 0.65);
+    padding: 13px 32px;
+    font-family: 'Fugaz One', sans-serif;
+    font-size: 20px;
+    letter-spacing: 1.5px;
+    cursor: pointer;
+    margin-bottom: 20px;
+    animation: attractPulse 0.87s infinite alternate ease-in-out;
+    transition: transform 0.12s;
+}
+
+.attract-start-btn:hover {
+    background: #ffffff;
+    color: #000000;
+    transform: scale(1.04) translateY(-2px);
+}
+
+@keyframes attractPulse {
+    0% { box-shadow: 8px 8px 0px #000000, 0 0 16px rgba(255, 230, 0, 0.45); transform: scale(1.0); }
+    100% { box-shadow: 8px 8px 0px #000000, 0 0 34px rgba(191, 255, 0, 0.95); transform: scale(1.025); }
+}
+
+.attract-mode-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 10px;
+}
+
+@media (max-width: 860px) {
+    .attract-mode-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}
+
+.attract-mode-card {
+    background: #120b2b;
+    border: 2px solid rgba(255, 255, 255, 0.28);
+    box-shadow: 5px 5px 0px #000000;
+    padding: 12px 10px;
+    color: #ffffff;
+    font-family: inherit;
+    cursor: pointer;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+    text-align: center;
+    transition: transform 0.12s, border-color 0.12s, background 0.12s;
+}
+
+.attract-mode-card:hover {
+    transform: translateY(-3px);
+    background: #1f1449;
+}
+
+.attract-mode-card.card-gold { border-color: var(--gold); }
+.attract-mode-card.card-cyan { border-color: var(--cyan); }
+.attract-mode-card.card-magenta { border-color: var(--magenta); }
+.attract-mode-card.card-volt { border-color: var(--volt); }
+
+.attract-mode-card:hover.card-gold { background: rgba(255, 230, 0, 0.18); }
+.attract-mode-card:hover.card-cyan { background: rgba(0, 245, 212, 0.18); }
+.attract-mode-card:hover.card-magenta { background: rgba(255, 30, 107, 0.18); }
+.attract-mode-card:hover.card-volt { background: rgba(191, 255, 0, 0.18); }
+
+.amc-icon {
+    font-size: 22px;
+}
+
+.attract-mode-card strong {
+    font-size: 12px;
+    font-weight: 800;
+    letter-spacing: 0.5px;
+    color: #ffffff;
+}
+
+.attract-mode-card small {
+    font-size: 9.5px;
+    color: #c2bae6;
+    line-height: 1.25;
+}
+
+.attract-bottom-ticker {
+    background: rgba(7, 4, 19, 0.9);
+    border: 2px solid rgba(255, 255, 255, 0.22);
+    padding: 6px 18px;
+    display: flex;
+    gap: 12px;
+    flex-wrap: wrap;
+    justify-content: center;
+    font-size: 10.5px;
+    font-weight: 800;
+    color: #dcd6f7;
+    letter-spacing: 1px;
+    transform: skewX(-8deg);
+}
+
+/* 3. Top-Center Clean Arcade Pill Bar & Namco Virtual Rear-View Radar Mirror */
+.arcade-top-status-bar {
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+    justify-content: center;
+    align-items: center;
+}
+
+.top-pill-btn {
+    background: rgba(9, 6, 22, 0.88);
+    color: #ffffff;
+    border: 2px solid var(--cyan);
+    box-shadow: 3px 3px 0px #000;
+    padding: 4px 10px;
+    font-family: inherit;
+    font-size: 10px;
+    font-weight: 800;
+    cursor: pointer;
+    transform: skewX(-8deg);
+    transition: all 0.1s;
+}
+
+.top-pill-btn:hover, .top-pill-btn.active {
+    background: var(--cyan);
+    color: #000;
+}
+
+.top-pill-btn.pill-gold {
+    border-color: var(--gold);
+    color: var(--gold);
+}
+
+.top-pill-btn.pill-gold:hover {
+    background: var(--gold);
+    color: #000;
+}
+
+.top-pill-badge {
+    background: var(--volt);
+    color: #000;
+    border: 2px solid #000;
+    box-shadow: 3px 3px 0px #000;
+    padding: 3px 8px;
+    font-size: 9.5px;
+    font-weight: 800;
+    transform: skewX(-8deg);
+}
+
+.rear-mirror-frame {
+    background: rgba(6, 4, 16, 0.92);
+    border: 2px solid var(--cyan);
+    box-shadow: 5px 5px 0px #000;
+    padding: 2px 5px 4px;
+    width: 304px;
+    transform: skewX(-4deg);
+}
+
+.rear-mirror-frame.mirror-danger {
+    border-color: var(--crimson);
+    box-shadow: 5px 5px 0px #000, 0 0 16px rgba(255, 0, 60, 0.75);
+}
+
+.mirror-bezel-top {
+    display: flex;
+    justify-content: space-between;
+    font-size: 8.5px;
+    font-weight: 800;
+    color: #a89fd4;
+    margin-bottom: 2px;
+    letter-spacing: 0.5px;
+}
+
+#rear-threat-status {
+    color: var(--cyan);
+}
+
+.rear-mirror-frame.mirror-danger #rear-threat-status {
+    color: var(--crimson);
+}
+
+#rear-mirror-canvas {
+    width: 100%;
+    height: 44px;
+    display: block;
+    background: #05030e;
+    border: 1px solid rgba(255, 255, 255, 0.25);
+}
+
+.sector-track-sub {
+    font-size: 9px;
+    font-weight: 800;
+    color: var(--gold);
+    letter-spacing: 1.2px;
+    margin-bottom: 1px;
+}
+
+.sector-banner.sector-flash {
+    border-color: var(--gold);
+    box-shadow: 4px 4px 0px #000, 0 0 22px rgba(255, 230, 0, 0.85);
+    transform: skewX(-8deg) scale(1.05);
+    transition: all 0.18s ease;
+}
+
+.arcade-style-callout {
+    background: linear-gradient(90deg, rgba(255, 30, 107, 0.92), rgba(11, 8, 26, 0.95));
+    border: 2px solid #ffffff;
+    box-shadow: 5px 5px 0px #000000;
+    color: #ffffff;
+    font-family: 'Fugaz One', sans-serif;
+    font-size: 13px;
+    padding: 4px 16px;
+    transform: skewX(-10deg);
+    letter-spacing: 1px;
+    animation: ribbonSnapIn 0.16s cubic-bezier(0.18, 0.89, 0.32, 1.28);
+}
+
+/* 4. Wrong-Way & Rival Proximity Warnings */
+.wrong-way-overlay {
+    position: fixed;
+    top: 32%;
+    left: 50%;
+    transform: translate(-50%, -50%) skewX(-8deg);
+    z-index: 28;
+    pointer-events: none;
+}
+
+.ww-box {
+    background: rgba(36, 2, 12, 0.94);
+    border: 4px solid var(--crimson);
+    box-shadow: 10px 10px 0px #000, 0 0 36px rgba(255, 0, 60, 0.9);
+    padding: 14px 28px;
+    text-align: center;
+    animation: attractPulse 0.35s infinite alternate;
+}
+
+.ww-icon {
+    font-family: 'Fugaz One', sans-serif;
+    font-size: 36px;
+    color: var(--crimson);
+    text-shadow: 3px 3px 0px #000;
+    letter-spacing: 2px;
+}
+
+.ww-sub {
+    font-size: 11px;
+    font-weight: 800;
+    color: #ffffff;
+    margin-top: 4px;
+    letter-spacing: 1px;
+}
+
+.rival-proximity-bar {
+    position: fixed;
+    bottom: 205px;
+    left: 50%;
+    transform: translateX(-50%);
+    display: flex;
+    gap: 14px;
+    align-items: center;
+    z-index: 18;
+    pointer-events: none;
+}
+
+.prox-indicator {
+    background: rgba(9, 5, 22, 0.9);
+    border: 2px solid var(--gold);
+    box-shadow: 4px 4px 0px #000;
+    padding: 3px 10px;
+    font-size: 11px;
+    font-weight: 800;
+    color: var(--gold);
+    transform: skewX(-8deg);
+}
+
+.prox-indicator.prox-danger {
+    border-color: var(--crimson);
+    background: rgba(45, 2, 16, 0.92);
+    color: #ffffff;
+    text-shadow: 0 0 8px var(--crimson);
+    animation: rageShake 0.12s infinite alternate;
+}
+
+/* 5. Bottom-Left Arcade Course Radar Minimap + Emotion Cluster */
+.hud-left-cluster {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    align-items: flex-start;
+}
+
+.arcade-minimap-box {
+    background: var(--panel-bg);
+    border: 3px solid var(--cyan);
+    box-shadow: 6px 6px 0px #000;
+    padding: 6px 10px;
+    width: 260px;
+    transform: skewX(-6deg);
+}
+
+.minimap-header {
+    display: flex;
+    justify-content: space-between;
+    font-size: 9.5px;
+    font-weight: 800;
+    color: var(--cyan);
+    margin-bottom: 4px;
+    letter-spacing: 0.6px;
+}
+
+#arcade-minimap-canvas {
+    width: 100%;
+    height: 120px;
+    background: rgba(5, 3, 14, 0.9);
+    border: 1px solid rgba(255, 255, 255, 0.22);
+    display: block;
+}
+
+.minimap-legend {
+    display: flex;
+    justify-content: space-between;
+    margin-top: 4px;
+    font-size: 8.5px;
+    font-weight: 800;
+    color: #cfc9ec;
+}
+
+.minimap-legend span {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.minimap-legend i {
+    display: inline-block;
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    border: 1px solid #000;
+}
+
+/* 6. Bottom-Right Authentic R4 / Rave Racer Speedometer, Gear, 16-Seg Tach & 3-Tier Drift Gauge */
+.hud-speed-panel {
+    width: 288px;
+    padding: 10px 14px;
+}
+
+.r4-speed-gear-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 10px;
+    margin: 4px 0;
+}
+
+.r4-gear-box {
+    background: #060312;
+    border: 2px solid var(--gold);
+    box-shadow: 3px 3px 0px #000;
+    padding: 3px 10px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    min-width: 62px;
+    cursor: pointer;
+    position: relative;
+}
+
+.r4-gear-box.is-redline {
+    border-color: var(--crimson);
+    background: #2b0310;
+    box-shadow: 3px 3px 0px #000, 0 0 14px var(--crimson);
+}
+
+.r4-trans-pill {
+    font-size: 8px;
+    font-weight: 800;
+    background: var(--cyan);
+    color: #000;
+    padding: 0 4px;
+    letter-spacing: 0.5px;
+}
+
+.r4-gear-box.is-mt .r4-trans-pill {
+    background: var(--gold);
+}
+
+.r4-gear-num {
+    font-family: 'Fugaz One', sans-serif;
+    font-size: 28px;
+    line-height: 1.0;
+    color: var(--gold);
+    margin: 1px 0;
+}
+
+.r4-gear-lbl {
+    font-size: 7.5px;
+    font-weight: 800;
+    color: #b8b0dc;
+    letter-spacing: 0.8px;
+}
+
+.r4-tach-wrap {
+    margin: 5px 0;
+    text-align: left;
+}
+
+.r4-tach-header {
+    display: flex;
+    justify-content: space-between;
+    font-size: 9px;
+    font-weight: 800;
+    color: #b8b2d8;
+    margin-bottom: 3px;
+}
+
+.r4-tach-header strong {
+    color: var(--cyan);
+}
+
+.r4-tach-segments {
+    display: grid;
+    grid-template-columns: repeat(16, 1fr);
+    gap: 2px;
+    height: 13px;
+    background: #05030d;
+    padding: 2px;
+    border: 1px solid rgba(255, 255, 255, 0.22);
+}
+
+.tach-seg {
+    background: #181233;
+    height: 100%;
+    transition: background 0.04s;
+}
+
+.tach-seg.lit-cyan {
+    background: var(--cyan);
+    box-shadow: 0 0 6px var(--cyan);
+}
+
+.tach-seg.lit-gold {
+    background: var(--gold);
+    box-shadow: 0 0 6px var(--gold);
+}
+
+.tach-seg.lit-red {
+    background: var(--crimson);
+    box-shadow: 0 0 8px var(--crimson);
+}
+
+.r4-tach-segments.redline-flash .tach-seg.lit-red {
+    background: #ffffff;
+}
+
+/* 3-Tier R4 Drift Charge & Boost Meter */
+.r4-drift-gauge-wrap {
+    margin: 6px 0;
+    text-align: left;
+}
+
+.r4-drift-gauge-head {
+    display: flex;
+    justify-content: space-between;
+    font-size: 9px;
+    font-weight: 800;
+    color: #cfc9ec;
+    margin-bottom: 3px;
+}
+
+.r4-drift-gauge-head strong {
+    color: var(--gold);
+}
+
+.r4-drift-tiers-track {
+    position: relative;
+    height: 12px;
+    background: #060410;
+    border: 2px solid #000;
+    overflow: hidden;
+}
+
+.drift-tier-marker {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    border-left: 1px dashed rgba(255, 255, 255, 0.65);
+    font-size: 7.5px;
+    font-weight: 800;
+    color: #ffffff;
+    padding-left: 2px;
+    line-height: 10px;
+    z-index: 3;
+}
+
+.r4-drift-charge-fill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--cyan) 0%, var(--gold) 60%, var(--magenta) 100%);
+    transition: width 0.05s linear;
+}
+
+.r4-drift-charge-fill.boost-active {
+    background: linear-gradient(90deg, var(--gold), var(--volt), #ffffff);
+    box-shadow: 0 0 12px var(--gold);
+}
+
+/* 7. Dedicated In-Race Pause & Quick Settings Modal */
+.pause-modal-window {
+    width: min(520px, 94vw);
+    background: #0b071c;
+    border: 4px solid var(--gold);
+    box-shadow: 12px 12px 0px #000000, 0 0 38px rgba(255, 230, 0, 0.28);
+    padding: 20px 24px;
+    transform: skewX(-5deg);
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+}
+
+.pm-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 2px solid rgba(255, 255, 255, 0.18);
+    padding-bottom: 10px;
+}
+
+.pm-eyebrow {
+    font-size: 9.5px;
+    font-weight: 800;
+    color: var(--cyan);
+    letter-spacing: 1.5px;
+}
+
+.pm-header h2 {
+    font-family: 'Fugaz One', sans-serif;
+    font-size: 26px;
+    color: var(--gold);
+    letter-spacing: 1px;
+}
+
+.pm-badge {
+    background: var(--magenta);
+    color: #ffffff;
+    font-size: 9.5px;
+    font-weight: 800;
+    padding: 3px 8px;
+    border: 1px solid #000;
+}
+
+.pm-settings-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 8px;
+    background: #130d2e;
+    border: 2px solid rgba(255, 255, 255, 0.18);
+    padding: 10px 12px;
+}
+
+.pm-setting-item {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.pm-setting-item span {
+    font-size: 8.5px;
+    font-weight: 800;
+    color: #b8b0dc;
+}
+
+.pm-actions-col {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.pm-big-btn {
+    width: 100%;
+    padding: 10px 14px;
+    font-size: 12.5px;
+    text-align: center;
+}
+
+/* 8. Interactive Visual Tokyo Highway Network Map Canvas */
+.wm-network-wrap {
+    background: #070414;
+    border: 2px solid var(--cyan);
+    box-shadow: 5px 5px 0px #000;
+    margin-bottom: 12px;
+    overflow: hidden;
+}
+
+#world-map-canvas {
+    width: 100%;
+    height: 220px;
+    display: block;
+    cursor: pointer;
+}
+
+.wm-route-preview-bar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: #120c29;
+    border-top: 1px solid rgba(0, 245, 212, 0.35);
+    padding: 5px 12px;
+    font-size: 10.5px;
+}
+
+.wm-route-preview-bar span {
+    color: var(--cyan);
+    font-weight: 800;
+}
+
+.wm-route-preview-bar strong {
+    color: var(--gold);
+}
+
+.venue-card.active-route {
+    border-color: var(--gold);
+    background: #23174c;
+    box-shadow: 4px 4px 0px #000;
+}
+
+/* 9. Responsive In-Game HUD Scaling for Smaller Laptop Viewports */
+@media (max-width: 1400px) {
+    #char-box-strip {
+        transform: scale(0.88);
+        transform-origin: top left;
+    }
+    .hud-dj-box {
+        transform: skewX(-4deg) scale(0.90);
+        transform-origin: top right;
+    }
+    .hud-left-cluster {
+        transform: scale(0.90);
+        transform-origin: bottom left;
+    }
+    .hud-speed-panel {
+        transform: skewX(-8deg) scale(0.92);
+        transform-origin: bottom right;
+    }
+}
+
+@media (max-width: 1120px) {
+    #char-box-strip {
+        transform: scale(0.76);
+    }
+    .hud-dj-box {
+        transform: skewX(-4deg) scale(0.78);
+    }
+    .rear-mirror-frame {
+        width: 240px;
+    }
+    .hud-left-cluster {
+        transform: scale(0.80);
+    }
+    .hud-speed-panel {
+        transform: skewX(-8deg) scale(0.82);
+    }
+}
+
+/* ============================================================================
+   10. HUMAN-IN-THE-LOOP (RLHF) AI DJ TRANSITION RATING & TRAINING STUDIO
+   ============================================================================ */
+.dev-tag.tag-magenta {
+    background: var(--magenta);
+    color: #ffffff;
+}
+
+.rb-rlhf-panel {
+    background: linear-gradient(180deg, rgba(19, 11, 43, 0.98) 0%, rgba(10, 6, 24, 0.98) 100%);
+    border: 2px solid var(--magenta);
+    box-shadow: inset 0 0 18px rgba(255, 30, 107, 0.16), 4px 4px 0px #000;
+    padding: 7px 9px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.rlhf-top-bar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.16);
+    padding-bottom: 5px;
+}
+
+.rlhf-title-group {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+.rlhf-badge {
+    background: var(--magenta);
+    color: #ffffff;
+    font-family: 'Fugaz One', sans-serif;
+    font-size: 10.5px;
+    padding: 2px 8px;
+    border: 1px solid #000;
+    letter-spacing: 0.6px;
+}
+
+#rlhf-stats-strip {
+    font-size: 9.5px;
+    font-weight: 800;
+    color: var(--gold);
+    background: #070413;
+    border: 1px solid rgba(255, 230, 0, 0.35);
+    padding: 2px 7px;
+}
+
+.rlhf-controls-group {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    flex-wrap: wrap;
+}
+
+.rlhf-inline-lbl {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 8.5px;
+    font-weight: 800;
+    color: #cfc9ec;
+}
+
+.rlhf-auto-chk {
+    display: flex;
+    align-items: center;
+    gap: 3px;
+    font-size: 8.5px;
+    font-weight: 800;
+    color: var(--cyan);
+    cursor: pointer;
+    padding-left: 2px;
+}
+
+.rlhf-grid {
+    display: grid;
+    grid-template-columns: 1.15fr 1.1fr 1.05fr;
+    gap: 7px;
+    align-items: stretch;
+}
+
+@media (max-width: 920px) {
+    .rlhf-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+.rlhf-col {
+    background: #0b071d;
+    border: 1px solid rgba(255, 255, 255, 0.18);
+    padding: 6px 7px;
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+}
+
+.rlhf-col-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 9px;
+    font-weight: 800;
+    color: var(--gold);
+    border-bottom: 1px solid rgba(255, 230, 0, 0.22);
+    padding-bottom: 3px;
+}
+
+.rlhf-pred-pill {
+    background: rgba(0, 245, 212, 0.15);
+    border: 1px solid var(--cyan);
+    color: var(--cyan);
+    padding: 1px 5px;
+    font-size: 8.5px;
+    font-weight: 800;
+}
+
+.rlhf-pair-card {
+    background: #060312;
+    border-left: 3px solid var(--cyan);
+    padding: 5px 7px;
+    font-size: 9.2px;
+    line-height: 1.35;
+    color: #e2ddf8;
+}
+
+.rlhf-pair-card strong {
+    color: #ffffff;
+}
+
+.rlhf-policy-row {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.rlhf-mini-lbl {
+    font-size: 8px;
+    font-weight: 800;
+    color: #a9a1cc;
+    min-width: 34px;
+}
+
+.rlhf-pill-strip {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 3px;
+    flex: 1;
+}
+
+.rlhf-mini-pill {
+    background: #161032;
+    color: #cfc9ec;
+    border: 1px solid rgba(255, 255, 255, 0.22);
+    font-family: inherit;
+    font-size: 8px;
+    font-weight: 800;
+    padding: 2px 5px;
+    cursor: pointer;
+}
+
+.rlhf-mini-pill:hover,
+.rlhf-mini-pill.active {
+    background: var(--cyan);
+    color: #000000;
+    border-color: #ffffff;
+}
+
+.rlhf-nudge-box {
+    background: #070414;
+    border: 1px dashed rgba(255, 230, 0, 0.35);
+    padding: 4px 6px;
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+}
+
+.rlhf-nudge-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 4px;
+}
+
+.rlhf-nudge-lbl {
+    font-size: 8px;
+    font-weight: 700;
+    color: #cfc9ec;
+}
+
+.rlhf-nudge-lbl strong {
+    color: var(--gold);
+}
+
+.rlhf-nudge-btns {
+    display: flex;
+    gap: 2px;
+}
+
+.rlhf-tags-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 3px;
+}
+
+.rlhf-tag-btn {
+    background: #140d2e;
+    color: #d6d0f2;
+    border: 1px solid rgba(255, 255, 255, 0.22);
+    font-family: inherit;
+    font-size: 8.2px;
+    font-weight: 700;
+    padding: 3px 5px;
+    text-align: left;
+    cursor: pointer;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.rlhf-tag-btn:hover {
+    border-color: var(--gold);
+    color: #ffffff;
+}
+
+.rlhf-tag-btn.active.tag-neg {
+    background: rgba(255, 30, 86, 0.28);
+    border-color: #ff1e56;
+    color: #ff9ebb;
+    box-shadow: 0 0 6px rgba(255, 30, 86, 0.45);
+}
+
+.rlhf-tag-btn.active.tag-pos {
+    background: rgba(138, 201, 38, 0.28);
+    border-color: #8ac926;
+    color: #d9ff99;
+    box-shadow: 0 0 6px rgba(138, 201, 38, 0.45);
+}
+
+.rlhf-stars-row {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 4px;
+    margin-top: 2px;
+}
+
+.rlhf-star-btn {
+    background: #171033;
+    border: 2px solid rgba(255, 255, 255, 0.28);
+    color: #ffffff;
+    font-family: inherit;
+    padding: 4px 2px;
+    cursor: pointer;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 1px;
+    transition: transform 0.08s ease, background 0.1s ease;
+}
+
+.rlhf-star-btn strong {
+    font-family: 'Fugaz One', sans-serif;
+    font-size: 13px;
+    line-height: 1.05;
+}
+
+.rlhf-star-btn span {
+    font-size: 7px;
+    font-weight: 800;
+    letter-spacing: 0.3px;
+    color: #cfc9ec;
+}
+
+.rlhf-star-btn.star-1:hover { background: #990f3d; border-color: #ff4d79; transform: translateY(-1px); }
+.rlhf-star-btn.star-2:hover { background: #9a3412; border-color: #fb923c; transform: translateY(-1px); }
+.rlhf-star-btn.star-3:hover { background: #1e3a8a; border-color: #60a5fa; transform: translateY(-1px); }
+.rlhf-star-btn.star-4:hover { background: #14532d; border-color: #4ade80; transform: translateY(-1px); }
+.rlhf-star-btn.star-5 {
+    border-color: var(--gold);
+    background: rgba(255, 230, 0, 0.14);
+}
+.rlhf-star-btn.star-5 strong {
+    color: var(--gold);
+}
+.rlhf-star-btn.star-5:hover {
+    background: var(--gold);
+    color: #000000;
+    border-color: #ffffff;
+    transform: translateY(-1px);
+}
+.rlhf-star-btn.star-5:hover strong,
+.rlhf-star-btn.star-5:hover span {
+    color: #000000;
+}
+
+.rlhf-feedback-toast {
+    background: #060312;
+    border: 1px solid rgba(0, 245, 212, 0.3);
+    padding: 4px 6px;
+    font-size: 8.5px;
+    color: #cfc9ec;
+    line-height: 1.3;
+}
+
+.rlhf-io-btns {
+    display: flex;
+    gap: 3px;
+}
+
+.rlhf-weights-list {
+    display: flex;
+    flex-direction: column;
+    gap: 2.5px;
+    max-height: 105px;
+    overflow-y: auto;
+    padding-right: 2px;
+}
+
+.rlhf-weight-row {
+    display: grid;
+    grid-template-columns: 98px 1fr 48px;
+    align-items: center;
+    gap: 4px;
+    font-size: 8px;
+    color: #d6d0f2;
+}
+
+.rlhf-weight-bar-bg {
+    height: 6px;
+    background: #05030e;
+    border: 1px solid rgba(255, 255, 255, 0.18);
+    overflow: hidden;
+    position: relative;
+}
+
+.rlhf-weight-bar-fill {
+    height: 100%;
+    transition: width 0.2s ease;
+}
+
+.rlhf-history-list {
+    border-top: 1px solid rgba(255, 255, 255, 0.14);
+    padding-top: 3px;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    max-height: 54px;
+    overflow-y: auto;
+    font-size: 8px;
+    color: #b8b0dc;
+}
+
+.rlhf-hist-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: #060312;
+    padding: 1.5px 5px;
+    border-left: 2px solid var(--gold);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.rb-human-badge {
+    font-size: 8px;
+    font-weight: 800;
+    padding: 1px 4px;
+    border-radius: 2px;
+    margin-left: 4px;
+}
+
+.rb-human-badge.gold {
+    background: rgba(255, 230, 0, 0.22);
+    border: 1px solid var(--gold);
+    color: var(--gold);
+}
+
+.rb-human-badge.veto {
+    background: rgba(255, 30, 86, 0.24);
+    border: 1px solid #ff1e56;
+    color: #ff85a2;
+}
+
+

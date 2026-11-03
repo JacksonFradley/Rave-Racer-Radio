@@ -12,6 +12,16 @@ RRR.TrackDJController = class TrackDJController {
         this.canvas.height = 256;
         this.ctx = this.canvas.getContext('2d');
 
+        // Pre-render CRT scanline overlay once to avoid 64 fillRect calls per frame
+        this.scanlineCanvas = document.createElement('canvas');
+        this.scanlineCanvas.width = 512;
+        this.scanlineCanvas.height = 256;
+        const sCtx = this.scanlineCanvas.getContext('2d');
+        sCtx.fillStyle = 'rgba(0, 0, 0, 0.18)';
+        for (let y = 0; y < 256; y += 4) {
+            sCtx.fillRect(0, y, 512, 2);
+        }
+
         this.djName = 'DJ KINETIX // LIVE BOILER ROOM SET';
         this.reactionState = 'GROOVE'; // 'GROOVE' | 'PRE_DROP' | 'DROP_HYPE' | 'SHOCK_CRASH' | 'OVERTAKE_SMIRK'
         this.reactionTimer = 0;
@@ -59,12 +69,15 @@ RRR.TrackDJController = class TrackDJController {
         }
 
         const ctx = this.ctx;
+        ctx.imageSmoothingEnabled = false;
         const w = this.canvas.width;
         const h = this.canvas.height;
         const beat = audioState.beatPulse || 0;
         const bass = audioState.subBass || 0;
-        const bpmPhase = (this.time * (audioState.bpm / 60)) * Math.PI * 2;
-        const headBob = Math.sin(bpmPhase) * (6 + bass * 8);
+        // Nam_Mac & Pixel_Tempys 12 FPS stepped animation ("on twos")
+        const steppedTime = Math.floor(this.time * 12.0) / 12.0;
+        const bpmPhase = (steppedTime * (audioState.bpm / 60)) * Math.PI * 2;
+        const headBob = Math.round(Math.sin(bpmPhase) * (6 + bass * 8));
 
         const cPrimary = vibeState.carPrimary;
         const cSecondary = vibeState.carSecondary;
@@ -160,21 +173,21 @@ RRR.TrackDJController = class TrackDJController {
         ctx.lineTo(djX + 18, h - 42);
         ctx.stroke();
 
-        // DJ Arms (Right hand raised on PRE_DROP, slamming crossfader on DROP)
+        // DJ Arms (Split-Cue Headphone Pose, Mixer EQ/CFX Knob-Twist Pose, Pre-Drop Pump, or Shock Crash)
+        const trState = rekordboxController ? rekordboxController.aiTransitionState : null;
+        const d1 = rekordboxController ? rekordboxController.deck1 : null;
+        const d2 = rekordboxController ? rekordboxController.deck2 : null;
+        const isSplitCueing = !!(trState && trState.active && trState.progress < (trState.swapProgress || 0.8) * 0.65);
+        const isTwistingKnob = !!(
+            (trState && trState.active) ||
+            (d1 && Math.abs(d1.colorFilter) > 0.12) ||
+            (d2 && Math.abs(d2.colorFilter) > 0.12)
+        );
+
         ctx.strokeStyle = '#000000';
         ctx.lineWidth = 12;
         ctx.lineCap = 'round';
-        if (this.reactionState === 'PRE_DROP') {
-            // Right arm raised high pumping to the build
-            const pump = Math.sin(bpmPhase) * 14;
-            ctx.beginPath();
-            ctx.moveTo(djX + 46, djY + 34);
-            ctx.lineTo(djX + 78, djY - 48 + pump);
-            ctx.stroke();
-            ctx.strokeStyle = this.rgb(cPrimary, 1.0);
-            ctx.lineWidth = 7;
-            ctx.stroke();
-        } else if (this.reactionState === 'SHOCK_CRASH') {
+        if (this.reactionState === 'SHOCK_CRASH') {
             // Both hands on headphones in shock!
             ctx.beginPath();
             ctx.moveTo(djX - 48, djY + 36);
@@ -182,6 +195,42 @@ RRR.TrackDJController = class TrackDJController {
             ctx.moveTo(djX + 48, djY + 36);
             ctx.lineTo(djX + 42, djY - 4);
             ctx.stroke();
+        } else {
+            if (isSplitCueing) {
+                // Boiler Room Split-Cue Pose: Left hand holding left headphone cup to ear while beatmatching!
+                ctx.beginPath();
+                ctx.moveTo(djX - 46, djY + 36);
+                ctx.lineTo(djX - 42, djY - 4);
+                ctx.stroke();
+                ctx.strokeStyle = this.rgb(cEmissive, 1.0);
+                ctx.lineWidth = 6;
+                ctx.stroke();
+            }
+            if (this.reactionState === 'PRE_DROP' && !isTwistingKnob) {
+                // Right arm raised high pumping to the build
+                const pump = Math.sin(bpmPhase) * 14;
+                ctx.strokeStyle = '#000000';
+                ctx.lineWidth = 12;
+                ctx.beginPath();
+                ctx.moveTo(djX + 46, djY + 34);
+                ctx.lineTo(djX + 78, djY - 48 + pump);
+                ctx.stroke();
+                ctx.strokeStyle = this.rgb(cPrimary, 1.0);
+                ctx.lineWidth = 7;
+                ctx.stroke();
+            } else if (isTwistingKnob) {
+                // Mixer Knob-Twist Pose: Right hand reaching down to center DJM-A9 EQ / Sound Color FX knob!
+                const twistX = Math.sin(this.time * 8.0) * 6;
+                ctx.strokeStyle = '#000000';
+                ctx.lineWidth = 11;
+                ctx.beginPath();
+                ctx.moveTo(djX + 44, djY + 34);
+                ctx.lineTo(djX + 10 + twistX, h - 42);
+                ctx.stroke();
+                ctx.strokeStyle = this.rgb(cPrimary, 1.0);
+                ctx.lineWidth = 6;
+                ctx.stroke();
+            }
         }
 
         // Anime Spiky Hair Back
@@ -309,27 +358,44 @@ RRR.TrackDJController = class TrackDJController {
         ctx.fillRect(36, h - 50, w - 72, 46);
         ctx.strokeRect(36, h - 50, w - 72, 46);
 
-        // Spinning CDJ Jog Wheels
+        // Spinning CDJ Jog Wheels (with UKG Vinyl Whip Backspin Blur Ring when backspinTimer > 0)
         for (const side of [-1, 1]) {
             const jx = w * 0.5 + side * 125;
             const jy = h - 27;
+            const deckObj = side === -1 ? (rekordboxController?.deck1) : (rekordboxController?.deck2);
+            const isBackspinning = !!(deckObj && deckObj.backspinTimer > 0);
             ctx.save();
             ctx.translate(jx, jy);
-            ctx.rotate(this.time * 6 * side);
-            ctx.strokeStyle = this.rgb(cEmissive, 0.9);
-            ctx.lineWidth = 3;
+            ctx.rotate(isBackspinning ? -this.time * 28 : this.time * 6 * side);
+            ctx.strokeStyle = isBackspinning ? '#ffe600' : this.rgb(cEmissive, 0.9);
+            ctx.lineWidth = isBackspinning ? 4.5 : 3;
             ctx.beginPath();
             ctx.arc(0, 0, 16, 0, Math.PI * 1.6);
             ctx.stroke();
+            if (isBackspinning) {
+                ctx.strokeStyle = '#ff1e56';
+                ctx.lineWidth = 2;
+                ctx.beginPath();
+                ctx.arc(0, 0, 21, 0.3, Math.PI * 1.3);
+                ctx.stroke();
+            }
             ctx.restore();
         }
 
-        // Animated Crossfader in center (driven by Rekordbox Crossfader when active)
+        // Animated Crossfader & Glowing EQ/CFX Rotary Arc in center (driven by Rekordbox Crossfader when active)
         const faderPos = rekordboxController
             ? rekordboxController.crossfader * 32
             : Math.sin(bpmPhase * 0.5) * 28;
         ctx.fillStyle = this.rgb(cEmissive, 1.0);
         ctx.fillRect(w * 0.5 + faderPos - 8, h - 35, 16, 18);
+
+        if (rekordboxController && (rekordboxController.aiTransitionState?.active || Math.abs(rekordboxController.deck1?.colorFilter || 0) > 0.1)) {
+            ctx.strokeStyle = '#ffe600';
+            ctx.lineWidth = 2.5;
+            ctx.beginPath();
+            ctx.arc(w * 0.5, h - 41, 7, 0, Math.PI * 1.5);
+            ctx.stroke();
+        }
 
         // Live Rekordbox Scrolling RGB Waveform & Beatgrid Strip on the DJ Booth Console!
         if (rekordboxController && rekordboxController.renderJumbotronRekordboxOverlay) {
@@ -347,11 +413,8 @@ RRR.TrackDJController = class TrackDJController {
         ctx.fillText(this.reactionText, w - 12, 20);
         ctx.textAlign = 'left';
 
-        // Horizontal CRT scanlines
-        ctx.fillStyle = 'rgba(0, 0, 0, 0.18)';
-        for (let y = 0; y < h; y += 4) {
-            ctx.fillRect(0, y, w, 2);
-        }
+        // Horizontal CRT scanlines (cached single-drawImage composite)
+        ctx.drawImage(this.scanlineCanvas, 0, 0);
     }
 
     rgb(arr, alpha = 1.0) {
